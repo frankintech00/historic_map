@@ -1,52 +1,68 @@
 /**
- * SideBySideView.jsx — one map, two L.tileLayer with draggable divider.
- * Uses leaflet-side-by-side. Reports pan/zoom via onViewChange.
+ * SideBySideView.jsx — two layers with a draggable divider.
+ * Uses ControlsBar; no other toggles rendered elsewhere.
  */
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { MapContainer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet-side-by-side";
 import { BASE_LAYERS } from "../config/mapSources.js";
-import ZoomBottomLeft from "./ZoomBottomLeft.jsx";
+import ControlsBar from "./controls/ControlsBar.jsx";
 
-function findLayer(id) {
-  return BASE_LAYERS.find((l) => l.id === id);
+function useLayerRegistry() {
+  return useMemo(() => {
+    const reg = new Map();
+    for (const l of BASE_LAYERS) reg.set(l.id, l);
+    return reg;
+  }, []);
 }
-
+function sanitiseId(id, registry) {
+  if (registry.has(id)) return id;
+  const fallback =
+    ["osm", "carto-voyager", "opentopo", "satellite"].find((k) =>
+      registry.has(k)
+    ) || BASE_LAYERS[0]?.id;
+  console.warn("[sbs] Missing layer id:", id, "→ falling back to:", fallback);
+  return fallback;
+}
+function mkOpts(cfg) {
+  const o = { attribution: cfg.attribution };
+  if (cfg.subdomains) o.subdomains = cfg.subdomains;
+  if (cfg.crossOrigin) o.crossOrigin = cfg.crossOrigin;
+  if (typeof cfg.tileSize === "number") o.tileSize = cfg.tileSize;
+  if (typeof cfg.zoomOffset === "number") o.zoomOffset = cfg.zoomOffset;
+  if (typeof cfg.minZoom === "number") o.minZoom = cfg.minZoom;
+  if (typeof cfg.maxZoom === "number") o.maxZoom = cfg.maxZoom;
+  return o;
+}
 function SideBySideControl({ leftId, rightId, onViewChange }) {
   const map = useMap();
-
+  const registry = useLayerRegistry();
   useEffect(() => {
-    const leftCfg = findLayer(leftId);
-    const rightCfg = findLayer(rightId);
+    const leftCfg = registry.get(sanitiseId(leftId, registry));
+    const rightCfg = registry.get(sanitiseId(rightId, registry));
     if (!leftCfg || !rightCfg) return;
-
-    const left = L.tileLayer(leftCfg.url, {
-      attribution: leftCfg.attribution,
-      ...(leftCfg.subdomains ? { subdomains: leftCfg.subdomains } : {}),
-    }).addTo(map);
-
-    const right = L.tileLayer(rightCfg.url, {
-      attribution: rightCfg.attribution,
-      ...(rightCfg.subdomains ? { subdomains: rightCfg.subdomains } : {}),
-    }).addTo(map);
-
+    const left = L.tileLayer(leftCfg.url, mkOpts(leftCfg)).addTo(map);
+    const right = L.tileLayer(rightCfg.url, mkOpts(rightCfg)).addTo(map);
     const control = L.control.sideBySide(left, right).addTo(map);
-
     const handler = () => {
       const c = map.getCenter();
       onViewChange?.([c.lat, c.lng], map.getZoom());
     };
     map.on("moveend zoomend", handler);
-
     return () => {
       map.off("moveend zoomend", handler);
-      control.remove();
-      map.removeLayer(left);
-      map.removeLayer(right);
+      try {
+        control.remove();
+      } catch {}
+      try {
+        map.removeLayer(left);
+      } catch {}
+      try {
+        map.removeLayer(right);
+      } catch {}
     };
-  }, [map, leftId, rightId, onViewChange]);
-
+  }, [map, leftId, rightId, onViewChange, registry]);
   return null;
 }
 
@@ -56,6 +72,8 @@ export default function SideBySideView({
   leftLayerId,
   rightLayerId,
   onViewChange,
+  mode = "split",
+  onToggleMode,
 }) {
   return (
     <MapContainer
@@ -65,16 +83,14 @@ export default function SideBySideView({
       preferCanvas
       worldCopyJump
       attributionControl
-      zoomControl={false} // move zoom to bottom-left
+      zoomControl={false}
     >
+      <ControlsBar mode={mode} onToggleMode={onToggleMode} />
       <SideBySideControl
         leftId={leftLayerId}
         rightId={rightLayerId}
         onViewChange={onViewChange}
       />
-
-      {/* Put zoom at bottom-left */}
-      <ZoomBottomLeft />
     </MapContainer>
   );
 }

@@ -1,14 +1,24 @@
 /**
  * SingleViewMap.jsx — one map, two TileLayers (bottom + top with opacity).
- * Reports pan/zoom via onViewChange.
+ * Uses ControlsBar; no other toggles rendered elsewhere.
  */
 import React from "react";
 import { MapContainer, TileLayer } from "react-leaflet";
 import { BASE_LAYERS } from "../config/mapSources.js";
-import ZoomBottomLeft from "./ZoomBottomLeft.jsx";
+import ControlsBar from "./controls/ControlsBar.jsx";
 
 function findLayer(id) {
   return BASE_LAYERS.find((l) => l.id === id);
+}
+function mkOpts(cfg) {
+  const o = { attribution: cfg.attribution };
+  if (cfg.subdomains) o.subdomains = cfg.subdomains;
+  if (cfg.crossOrigin) o.crossOrigin = cfg.crossOrigin;
+  if (typeof cfg.tileSize === "number") o.tileSize = cfg.tileSize;
+  if (typeof cfg.zoomOffset === "number") o.zoomOffset = cfg.zoomOffset;
+  if (typeof cfg.minZoom === "number") o.minZoom = cfg.minZoom;
+  if (typeof cfg.maxZoom === "number") o.maxZoom = cfg.maxZoom;
+  return o;
 }
 
 export default function SingleViewMap({
@@ -18,6 +28,8 @@ export default function SingleViewMap({
   topLayerId,
   opacity = 0.7,
   onViewChange,
+  mode = "single",
+  onToggleMode,
 }) {
   const bottom = findLayer(bottomLayerId);
   const top = findLayer(topLayerId);
@@ -30,7 +42,7 @@ export default function SingleViewMap({
       preferCanvas
       worldCopyJump
       attributionControl
-      zoomControl={false} // we’ll add our own at bottom-left
+      zoomControl={false}
       whenCreated={(m) => {
         m.on("moveend zoomend", () => {
           const c = m.getCenter();
@@ -38,24 +50,9 @@ export default function SingleViewMap({
         });
       }}
     >
-      {bottom && (
-        <TileLayer
-          url={bottom.url}
-          attribution={bottom.attribution}
-          {...(bottom.subdomains ? { subdomains: bottom.subdomains } : {})}
-        />
-      )}
-      {top && (
-        <TileLayer
-          url={top.url}
-          attribution={top.attribution}
-          opacity={opacity}
-          {...(top.subdomains ? { subdomains: top.subdomains } : {})}
-        />
-      )}
-
-      {/* Put zoom at bottom-left */}
-      <ZoomBottomLeft />
+      <ControlsBar mode={mode} onToggleMode={onToggleMode} />
+      {bottom && <TileLayer url={bottom.url} opacity={1} {...mkOpts(bottom)} />}
+      {top && <TileLayer url={top.url} opacity={opacity} {...mkOpts(top)} />}
     </MapContainer>
   );
 }

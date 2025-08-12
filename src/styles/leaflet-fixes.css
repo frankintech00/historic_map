@@ -1,0 +1,12 @@
+/* Stop Tailwind (and other resets) from stretching Leaflet images */
+.leaflet-container img.leaflet-marker-icon,
+.leaflet-container img.leaflet-marker-shadow {
+  max-width: none !important;
+  height: auto; /* Leaflet sets explicit width/height inline */
+}
+
+/* (Optional) also protect control icons you render as <img> */
+.leaflet-control img {
+  max-width: none;
+  height: auto;
+}

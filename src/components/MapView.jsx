@@ -2,30 +2,24 @@
  * MapView.jsx — orchestrates Single vs Side-by-Side modes.
  * Keeps view & layer state, delegates rendering to child components.
  */
-
 import React, { useMemo, useState } from "react";
 import { BASE_LAYERS } from "../config/mapSources.js";
 import SingleViewMap from "./SingleViewMap.jsx";
 import SideBySideView from "./SideBySideView.jsx";
 import LayerOpacityPanel from "./LayerOpacityPanel.jsx";
-import ModeToggle from "./ModeToggle.jsx";
 import LayerSelectors from "./LayerSelectors.jsx";
 
 export default function MapView() {
-  // 1) Shared map view (preserved across modes)
   const defaultCenter = useMemo(() => [55.8642, -4.2518], []);
   const [center, setCenter] = useState(defaultCenter);
   const [zoom, setZoom] = useState(12);
 
-  // 2) Mode
   const [split, setSplit] = useState(false);
 
-  // 3) Single-view state
   const [bottomLayer, setBottomLayer] = useState("osm");
   const [topLayer, setTopLayer] = useState("opentopo");
   const [opacity, setOpacity] = useState(0.7);
 
-  // 4) Split-view state
   const [leftLayer, setLeftLayer] = useState("osm");
   const [rightLayer, setRightLayer] = useState("carto-voyager");
 
@@ -38,6 +32,8 @@ export default function MapView() {
             zoom={zoom}
             leftLayerId={leftLayer}
             rightLayerId={rightLayer}
+            mode="split"
+            onToggleMode={() => setSplit((s) => !s)}
             onViewChange={(c, z) => {
               setCenter(c);
               setZoom(z);
@@ -59,6 +55,8 @@ export default function MapView() {
             bottomLayerId={bottomLayer}
             topLayerId={topLayer}
             opacity={opacity}
+            mode="single"
+            onToggleMode={() => setSplit((s) => !s)}
             onViewChange={(c, z) => {
               setCenter(c);
               setZoom(z);
@@ -74,8 +72,7 @@ export default function MapView() {
           />
         </>
       )}
-
-      <ModeToggle split={split} onToggle={() => setSplit((s) => !s)} />
+      {/* Removed separate ModeToggle — it now lives inside ControlsBar */}
     </div>
   );
 }
