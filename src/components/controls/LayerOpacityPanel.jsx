@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { BASE_LAYERS } from "../config/mapSources";
+import { BASE_LAYERS } from "../../config/mapSources";
 
 /**
  * LayerOpacityPanel

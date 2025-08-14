@@ -3,6 +3,8 @@
  * Locate (blue) → Zoom (+/−) → Mode toggle
  * - Blue pin anchors at the TIP (bottom centre)
  * - Marker/circle hidden below zoom 11
+ * - Zoom buttons are disabled at the limits of currently visible tile layers.
+ *   (We DO NOT clamp map zoom ourselves anymore.)
  */
 import { useEffect } from "react";
 import { useMap } from "react-leaflet";
@@ -36,6 +38,63 @@ export default function ControlsBar({
       shadowUrl: null,
     });
 
+    // ---- helpers: compute allowed zoom range from visible tile layers ----
+    function visibleZoomBounds(leafletMap) {
+      const mins = [];
+      const maxs = [];
+      leafletMap.eachLayer((layer) => {
+        if (layer instanceof L.TileLayer) {
+          const o = layer.options || {};
+          if (Number.isFinite(o.minZoom)) mins.push(o.minZoom);
+          if (Number.isFinite(o.maxZoom)) maxs.push(o.maxZoom);
+        }
+      });
+
+      const mapMin = Number.isFinite(leafletMap.getMinZoom())
+        ? leafletMap.getMinZoom()
+        : 0;
+      const rawMax = leafletMap.getMaxZoom();
+      const mapMax =
+        Number.isFinite(rawMax) && rawMax !== Infinity ? rawMax : 22;
+
+      const min = mins.length ? Math.max(...mins) : mapMin;
+      const max = maxs.length ? Math.min(...maxs) : mapMax;
+      return {
+        min: Math.min(min, max), // safety
+        max: Math.max(min, max),
+      };
+    }
+
+    function canZoomIn(leafletMap) {
+      const { max } = visibleZoomBounds(leafletMap);
+      return leafletMap.getZoom() < max;
+    }
+    function canZoomOut(leafletMap) {
+      const { min } = visibleZoomBounds(leafletMap);
+      return leafletMap.getZoom() > min;
+    }
+
+    function setDisabled(el, disabled) {
+      if (!el) return;
+      el.setAttribute("aria-disabled", String(disabled));
+      if (disabled) {
+        el.classList.add(
+          "opacity-40",
+          "cursor-not-allowed",
+          "pointer-events-none"
+        );
+        el.classList.remove("hover:bg-slate-50");
+      } else {
+        el.classList.remove(
+          "opacity-40",
+          "cursor-not-allowed",
+          "pointer-events-none"
+        );
+        el.classList.add("hover:bg-slate-50");
+      }
+    }
+
+    // ---- UI scaffolding ----
     const Controls = L.Control.extend({
       options: { position },
       onAdd: function () {
@@ -51,7 +110,7 @@ export default function ControlsBar({
           L.DomUtil.create(
             "div",
             [
-              "bg-white/90", // 90% opacity
+              "bg-white/90",
               "border",
               "border-slate-300",
               "rounded",
@@ -80,10 +139,12 @@ export default function ControlsBar({
             L.DomEvent.preventDefault(e);
             onClick?.();
           });
-          return card;
+          return { card, btn };
         };
 
+        // Stop both click and wheel from bubbling into the map (UX nicety)
         L.DomEvent.disableClickPropagation(container);
+        L.DomEvent.disableScrollPropagation(container);
 
         // Locate
         makeIconCard({
@@ -107,6 +168,7 @@ export default function ControlsBar({
           "flex overflow-hidden rounded",
           zoomCard
         );
+
         const mkZoomBtn = (title, onClick, imgSrc, addRightBorder) => {
           const a = L.DomUtil.create(
             "a",
@@ -122,12 +184,30 @@ export default function ControlsBar({
           a.innerHTML = `<img src="${imgSrc}" alt="" width="${ICON}" height="${ICON}" />`;
           L.DomEvent.on(a, "click", (e) => {
             L.DomEvent.preventDefault(e);
-            onClick?.();
+            onClick?.(a);
           });
           return a;
         };
-        mkZoomBtn("Zoom in", () => map.zoomIn(), zoomInImg, true);
-        mkZoomBtn("Zoom out", () => map.zoomOut(), zoomOutImg, false);
+
+        const zoomInBtn = mkZoomBtn(
+          "Zoom in",
+          () => {
+            if (!canZoomIn(map)) return;
+            map.zoomIn(); // let Leaflet handle bounds
+          },
+          zoomInImg,
+          true
+        );
+
+        const zoomOutBtn = mkZoomBtn(
+          "Zoom out",
+          () => {
+            if (!canZoomOut(map)) return;
+            map.zoomOut();
+          },
+          zoomOutImg,
+          false
+        );
 
         // Mode toggle
         const toggleCard = makeCard("px-3 py-2");
@@ -169,11 +249,36 @@ export default function ControlsBar({
         L.DomUtil.create("span", "text-xs font-medium", label).textContent =
           "Side-by-Side";
 
+        // Insert into Leaflet corner
         try {
           const corner = map._controlCorners?.[this.getPosition()];
           if (corner) corner.insertBefore(container, corner.firstChild);
         } catch {}
+
+        // Keep zoom button state in sync with map/layers
+        const updateZoomButtons = () => {
+          setDisabled(zoomInBtn, !canZoomIn(map));
+          setDisabled(zoomOutBtn, !canZoomOut(map));
+        };
+        updateZoomButtons();
+
+        map.on("zoomend", updateZoomButtons);
+        map.on("layeradd", updateZoomButtons);
+        map.on("layerremove", updateZoomButtons);
+
+        // Cleanup
+        container._cleanup = () => {
+          map.off("zoomend", updateZoomButtons);
+          map.off("layeradd", updateZoomButtons);
+          map.off("layerremove", updateZoomButtons);
+        };
+
         return container;
+      },
+      onRemove: function () {
+        try {
+          this.getContainer()?._cleanup?.();
+        } catch {}
       },
     });
 
