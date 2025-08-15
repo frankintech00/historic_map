@@ -7,10 +7,20 @@ import { BASE_LAYERS } from "../../config/mapSources";
 import ControlsBar from "../controls/ControlsBar.jsx";
 import SearchPin from "../overlays/SearchPin.jsx";
 
+// Add tiny equality helpers to avoid feedback loops
+const EPS = 1e-6;
+const approxEqual = (a, b, eps = EPS) => Math.abs(a - b) <= eps;
+
 /** Keep external centre/zoom applied to Leaflet */
 function ViewSync({ center, zoom }) {
   const map = useMap();
   useEffect(() => {
+    const cur = map.getCenter();
+    const curZoom = map.getZoom();
+    const sameCenter =
+      approxEqual(cur.lat, center[0]) && approxEqual(cur.lng, center[1]);
+    const sameZoom = curZoom === zoom;
+    if (sameCenter && sameZoom) return; // no-op, prevents moveend loop
     map.setView(center, zoom, { animate: true });
   }, [center, zoom, map]);
   return null;

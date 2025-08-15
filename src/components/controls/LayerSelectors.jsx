@@ -2,19 +2,18 @@
  * LayerSelectors.jsx — split-mode left/right selectors with category separator.
  */
 import React from "react";
+import { BASE_LAYERS } from "../../config/mapSources";
 
 export default function LayerSelectors({
   leftLayer,
   rightLayer,
   onLeftChange,
   onRightChange,
-  layers,
+  layers = BASE_LAYERS,
 }) {
-  // Separate modern and historic layers based on id prefix (or another property)
   const modernLayers = layers.filter((layer) => !layer.id.startsWith("nls-"));
   const historicLayers = layers.filter((layer) => layer.id.startsWith("nls-"));
 
-  // Helper to render the grouped options
   const renderOptions = () => (
     <>
       {modernLayers.map((layer) => (

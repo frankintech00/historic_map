@@ -36,7 +36,6 @@ export default function LayerOpacityPanel({
 
       {historicLayers.length > 0 && (
         <>
-          {/* Visual, non-selectable separator */}
           <option disabled value="__sep_historic__">
             ────────── Historic Maps ──────────
           </option>
