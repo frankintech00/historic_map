@@ -1,0 +1,11 @@
+services:
+  maps:
+    build:
+      context: .
+      args:
+        VITE_MAPTILER_KEY: ${VITE_MAPTILER_KEY}
+    image: safeshares/maps:latest
+    container_name: maps
+    restart: unless-stopped
+    ports:
+      - "8090:80"
