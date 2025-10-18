@@ -26,3 +26,7 @@ dist-ssr
 # MapTiler API key
 .env.local
 .env
+
+# docker files
+dockerfile
+docker-compose.yml
