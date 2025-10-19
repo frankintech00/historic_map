@@ -81,11 +81,11 @@ export default function SingleViewMap({
       )}
 
       {/* Custom controls */}
-      <ControlsBar
+      {/* <ControlsBar
         mode={mode}
         onToggleMode={onToggleMode}
         position="bottomleft"
-      />
+      /> */}
     </MapContainer>
   );
 }

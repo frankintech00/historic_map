@@ -20,8 +20,8 @@ export default function SearchPin({ lat, lng, label, minZoom = 11 }) {
     () =>
       L.icon({
         iconUrl: bluePin,
-        iconSize: [50, 60],
-        iconAnchor: [25, 60], // tip of the pin sits on the coordinate
+        iconSize: [30, 30],
+        iconAnchor: [15, 30], // tip of the pin sits on the coordinate
         popupAnchor: [0, -54],
         shadowUrl: null,
       }),

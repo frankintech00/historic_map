@@ -19,6 +19,9 @@ import LayerOpacityPanel from "../controls/LayerOpacityPanel.jsx";
 import LayerSelectors from "../controls/LayerSelectors.jsx";
 import { SearchProvider, useSearchGoto } from "../../state/SearchBus.jsx";
 
+import SidePopout from "../layout/SidePopout.jsx";
+import SearchBar from "../controls/SearchBar.jsx";
+
 // ---------- helpers ----------
 function hasLayer(id) {
   return !!BASE_LAYERS.find((l) => l.id === id);
@@ -120,7 +123,7 @@ export default function MapView() {
               onToggleMode={() => setSplit((s) => !s)}
               onViewChange={onViewChange}
             />
-            <LayerSelectors
+            {/* <LayerSelectors
               leftLayer={leftLayer}
               rightLayer={rightLayer}
               onLeftChange={(id) => {
@@ -138,7 +141,7 @@ export default function MapView() {
                 setRightLayer(valid);
               }}
               layers={BASE_LAYERS}
-            />
+            /> */}
           </>
         ) : (
           <>
@@ -154,7 +157,7 @@ export default function MapView() {
               onToggleMode={() => setSplit((s) => !s)}
               onViewChange={onViewChange}
             />
-            <LayerOpacityPanel
+            {/* <LayerOpacityPanel
               topLayer={topLayer}
               setTopLayer={(id) => setTopLayer(ensureValid(id, defaults.top))}
               bottomLayer={bottomLayer}
@@ -163,9 +166,14 @@ export default function MapView() {
               }
               opacity={opacity}
               setOpacity={setOpacity}
-            />
+            /> */}
           </>
         )}
+
+        {/* Left pop-out menu with SearchBar pinned in the header */}
+        <SidePopout header={<SearchBar />}>
+          {/* Future controls will go here */}
+        </SidePopout>
       </div>
     </SearchProvider>
   );

@@ -154,11 +154,11 @@ export default function SideBySideView({
       )}
 
       {/* Custom controls */}
-      <ControlsBar
+      {/* <ControlsBar
         mode={mode}
         onToggleMode={onToggleMode}
         position="bottomleft"
-      />
+      /> */}
     </MapContainer>
   );
 }
