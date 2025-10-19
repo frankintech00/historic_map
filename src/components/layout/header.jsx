@@ -1,23 +1,21 @@
 import React from "react";
-import SearchBar from "../controls/SearchBar.jsx";
+import SearchBar from "../controls/SearchBar";
 
 /**
- * Header.jsx
- * Simple top bar with centred search. Room for logo/actions later.
+ * Transparent header — only the search box visible and centred at the top.
  */
 export default function Header() {
   return (
-    <header
-      className="bg-white shadow-sm z-[1000] h-16 flex items-center"
-      role="banner"
+    <div
+      className="
+        fixed top-3 left-0 right-0 z-[1100]
+        flex justify-center
+        pointer-events-none
+      "
     >
-      <div className="w-full max-w-7xl mx-auto px-4">
-        <div className="w-full flex items-center justify-center">
-          <div className="w-full max-w-xl mx-auto pointer-events-auto">
-            <SearchBar />
-          </div>
-        </div>
+      <div className="pointer-events-auto w-full max-w-2xl px-3">
+        <SearchBar />
       </div>
-    </header>
+    </div>
   );
 }

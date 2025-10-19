@@ -6,7 +6,9 @@ import { BASE_LAYERS } from "../../config/mapSources";
  * - Lets the user choose bottom and top layers (from BASE_LAYERS)
  * - Adds a visual delimiter between modern and historic layers
  * - Adjusts the opacity of the top layer only
- * - Renders as a compact panel on the top-right
+ * - Renders as a compact panel on the top-left
+ *
+ * Functionality unchanged — only the position moved from right to left.
  */
 export default function LayerOpacityPanel({
   topLayer,
@@ -50,7 +52,7 @@ export default function LayerOpacityPanel({
   );
 
   return (
-    <div className="absolute top-4 right-4 z-[1000] pointer-events-auto bg-white/90 shadow rounded-lg p-4 text-sm space-y-4 w-60">
+    <div className="absolute top-4 left-4 z-[1000] pointer-events-auto bg-white/90 shadow rounded-lg p-4 text-sm space-y-4 w-60">
       {/* Bottom Layer */}
       <div>
         <label className="block font-medium mb-1" htmlFor="lop-bottom-select">
