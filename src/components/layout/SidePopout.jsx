@@ -2,17 +2,18 @@ import React, { useEffect, useRef, useState } from "react";
 
 /**
  * SidePopout (left)
- * - Full-height drawer from the left with constant-width chevron tab.
- * - ~70% bg on drawer + tab (children not faded).
- * - Responsive widths; sticky header/footer; scrollable content with stable scrollbars.
+ * - Full-height drawer that slides from the left with a constant-width chevron tab.
+ * - ~70% background on drawer + tab (children not faded).
+ * - Sticky header/footer; scrollable middle content; responsive widths.
  *
  * Props:
  * - defaultOpen?: boolean
  * - widthClasses?: string         // responsive width classes; defaults provided
  * - overlay?: boolean
  * - onOpenChange?: (open: boolean) => void
- * - header?: ReactNode            // pinned at top (e.g., <SearchBar />)
- * - footer?: ReactNode            // pinned at bottom (optional actions)
+ * - header?: React.ReactNode      // pinned at top (e.g., <SearchBar />)
+ * - footer?: React.ReactNode      // pinned at bottom (e.g., Locate/Toggle/Zoom row)
+ * - children?: React.ReactNode    // scrollable middle content
  */
 export default function SidePopout({
   defaultOpen = false,
@@ -26,6 +27,7 @@ export default function SidePopout({
   const [open, setOpen] = useState(defaultOpen);
   const panelRef = useRef(null);
 
+  // Notify parent on state changes
   useEffect(() => {
     onOpenChange?.(open);
   }, [open, onOpenChange]);
@@ -39,7 +41,7 @@ export default function SidePopout({
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
-  // Polite focus on open
+  // Polite focus when opened
   useEffect(() => {
     if (open && panelRef.current) {
       if (!document.activeElement || document.activeElement === document.body) {
@@ -48,6 +50,7 @@ export default function SidePopout({
     }
   }, [open]);
 
+  // Chevron icon (no external deps)
   const Chevron = ({ left = false }) => (
     <svg
       width="18"
@@ -69,6 +72,7 @@ export default function SidePopout({
 
   return (
     <>
+      {/* Optional overlay (kept off by default so the map remains interactive) */}
       {overlay && (
         <div
           onClick={() => setOpen(false)}
@@ -94,7 +98,7 @@ export default function SidePopout({
           open ? "translate-x-0" : "-translate-x-full",
           "focus:outline-none flex flex-col",
         ].join(" ")}
-        // Keep scrollbar space to prevent layout shift across breakpoints
+        // Keep scrollbar space stable to avoid layout shifts
         style={{ scrollbarGutter: "stable" }}
       >
         {/* Sticky header (e.g., SearchBar) */}
@@ -104,7 +108,7 @@ export default function SidePopout({
           </div>
         )}
 
-        {/* Scrollable content area */}
+        {/* Scrollable content */}
         <div
           className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-3"
           style={{ scrollbarGutter: "stable" }}
@@ -112,14 +116,19 @@ export default function SidePopout({
           {children}
         </div>
 
-        {/* Sticky footer (optional) */}
+        {/* Sticky footer (e.g., Locate / Toggle / Zoom) */}
         {footer && (
           <div className="sticky bottom-0 z-10 border-t border-gray-200 bg-white/70 backdrop-blur px-4 py-3">
+            {/* 
+              Tip for callers: wrap footer content in 
+              'flex items-center justify-between gap-2 flex-wrap'
+              so buttons space evenly and wrap on narrow screens.
+            */}
             {footer}
           </div>
         )}
 
-        {/* Close tab (OPEN) */}
+        {/* Close tab (visible only when open) */}
         {open && (
           <button
             type="button"
@@ -136,7 +145,7 @@ export default function SidePopout({
         )}
       </aside>
 
-      {/* Open tab (CLOSED) */}
+      {/* Open tab (visible only when closed) */}
       {!open && (
         <button
           type="button"

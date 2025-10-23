@@ -4,17 +4,19 @@ import L from "leaflet";
 
 /**
  * LocatePin
- * - Simple blue dot marker, same visual style as SearchPin.
- * - Hides at low zoom (to avoid clutter), shows >= 11.
- *
+ * Simple blue dot marker, same visual style as the SearchPin.
  * Props:
- * - point: { lat: number, lng: number, label?: string }
+ *  - point: { lat: number, lng: number, label?: string }
  */
 const icon = new L.DivIcon({
   className: "locate-pin",
   html: `<div style="
-    width:18px;height:18px;border-radius:9999px;background:#2563eb;
-    border:2px solid white;box-shadow:0 0 0 1px rgba(0,0,0,.2);
+    width:18px;
+    height:18px;
+    border-radius:9999px;
+    background:#2563eb; /* Tailwind blue-600 */
+    border:2px solid white;
+    box-shadow:0 0 0 1px rgba(0,0,0,.2);
   "></div>`,
   iconSize: [18, 18],
   iconAnchor: [9, 9],

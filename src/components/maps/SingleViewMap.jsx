@@ -1,24 +1,55 @@
-import React, { useEffect, useRef } from "react";
-import { MapContainer, TileLayer, useMap } from "react-leaflet";
+import React, { useMemo } from "react";
+import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { BASE_LAYERS } from "../../config/mapSources";
-import ControlsBar from "../controls/ControlsBar.jsx";
+import { BASE_LAYERS } from "../../config/mapSources.js";
 import SearchPin from "../overlays/SearchPin.jsx";
+import LocatePin from "../overlays/LocatePin.jsx";
 
-/** Sync external center/zoom into the Leaflet map */
-function ViewSync({ center, zoom }) {
-  const map = useMap();
-  useEffect(() => {
-    map.setView(center, zoom, { animate: true });
-  }, [center, zoom, map]);
+/**
+ * SingleViewMap
+ * Controlled by props; recentering handled inside the Leaflet context.
+ * Props:
+ *  - center: [lat, lng]
+ *  - zoom: number
+ *  - style: object
+ *  - bottomLayerId: string
+ *  - topLayerId: string
+ *  - opacity: number
+ *  - searchMarker: { lat, lng, label? } | null
+ *  - locateMarker: { lat, lng, label? } | null
+ *  - onViewChange: (centerArray, zoomNumber) => void
+ */
+
+function ViewSync({ onViewChange }) {
+  const map = useMapEvents({
+    moveend: () =>
+      onViewChange([map.getCenter().lat, map.getCenter().lng], map.getZoom()),
+    zoomend: () =>
+      onViewChange([map.getCenter().lat, map.getCenter().lng], map.getZoom()),
+  });
   return null;
 }
 
-/** Works for array or keyed object exports */
-function getLayer(defs, id) {
-  if (!defs) return undefined;
-  if (Array.isArray(defs)) return defs.find((l) => l.id === id);
-  return defs[id];
+/** Recenter whenever center/zoom change OR a new locateMarker arrives */
+function RecenterController({ center, zoom, locateMarker }) {
+  const map = useMap();
+
+  // Keep map synced to external center/zoom
+  React.useEffect(() => {
+    // setView avoids weird animation conflicts
+    map.setView(center, zoom, { animate: false });
+  }, [map, center[0], center[1], zoom]);
+
+  // Nudge focus on new locate point (even if zoom unchanged)
+  React.useEffect(() => {
+    if (!locateMarker) return;
+    const target = [locateMarker.lat, locateMarker.lng];
+    const nextZoom = Math.max(map.getZoom() ?? 0, 14);
+    // flyTo is fine now that we’re inside the map context
+    map.flyTo(target, nextZoom, { duration: 0.6 });
+  }, [map, locateMarker?.lat, locateMarker?.lng]); // run when coords change
+
+  return null;
 }
 
 export default function SingleViewMap({
@@ -28,64 +59,51 @@ export default function SingleViewMap({
   bottomLayerId,
   topLayerId,
   opacity,
-  searchMarker, // {lat, lng, label} | null
-  mode,
-  onToggleMode,
+  searchMarker,
+  locateMarker,
   onViewChange,
 }) {
-  const mapRef = useRef(null);
-
-  const bottom = getLayer(BASE_LAYERS, bottomLayerId);
-  const top = getLayer(BASE_LAYERS, topLayerId);
+  // Resolve layer objects from ids
+  const { bottomLayer, topLayer } = useMemo(() => {
+    const byId = Object.fromEntries(BASE_LAYERS.map((l) => [l.id, l]));
+    return {
+      bottomLayer: byId[bottomLayerId] || BASE_LAYERS[0],
+      topLayer: byId[topLayerId] || null,
+    };
+  }, [bottomLayerId, topLayerId]);
 
   return (
     <MapContainer
-      ref={mapRef}
       center={center}
       zoom={zoom}
+      className="w-full h-full"
       style={style}
-      zoomControl={false} // we use our own zoom buttons
-      whenReady={() => {
-        const map = mapRef.current;
-        if (map) {
-          map.on("moveend", () => {
-            const c = map.getCenter();
-            onViewChange?.([c.lat, c.lng], map.getZoom());
-          });
-        }
-      }}
+      zoomControl={false}
+      attributionControl={true}
     >
-      <ViewSync center={center} zoom={zoom} />
+      {/* Base layer */}
+      <TileLayer url={bottomLayer.url} attribution={bottomLayer.attribution} />
 
-      {/* Bottom/base layer */}
-      {bottom ? (
-        <TileLayer url={bottom.url} attribution={bottom.attribution} />
-      ) : null}
-
-      {/* Optional top overlay with opacity */}
-      {top && (!bottom || top.id !== bottom.id) ? (
+      {/* Top layer with opacity */}
+      {topLayer && (
         <TileLayer
-          url={top.url}
-          attribution={top.attribution}
+          url={topLayer.url}
+          attribution={topLayer.attribution}
           opacity={opacity}
-        />
-      ) : null}
-
-      {/* Search pin (blue, hidden below zoom 11) */}
-      {searchMarker && (
-        <SearchPin
-          lat={searchMarker.lat}
-          lng={searchMarker.lng}
-          label={searchMarker.label}
         />
       )}
 
-      {/* Custom controls */}
-      {/* <ControlsBar
-        mode={mode}
-        onToggleMode={onToggleMode}
-        position="bottomleft"
-      /> */}
+      {/* Pins */}
+      {searchMarker && <SearchPin point={searchMarker} />}
+      {locateMarker && <LocatePin point={locateMarker} />}
+
+      {/* Controllers */}
+      <ViewSync onViewChange={onViewChange} />
+      <RecenterController
+        center={center}
+        zoom={zoom}
+        locateMarker={locateMarker}
+      />
     </MapContainer>
   );
 }

@@ -91,6 +91,9 @@ export default function MapView() {
   // Search pin state
   const [searchPoint, setSearchPoint] = useState(null);
 
+  // Locate pin state
+  const [locatePoint, setLocatePoint] = useState(null);
+
   const handleGoto = useCallback(({ lat, lng, label, zoom: z = 16 }) => {
     const c = [lat, lng];
     setCenter(c);
@@ -107,6 +110,72 @@ export default function MapView() {
     setZoom(z);
   }, []);
 
+  // --- footer control handlers (inline UI; keep behaviour unchanged) ---
+  const handleLocate = useCallback(() => {
+    if (!("geolocation" in navigator)) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const c = [latitude, longitude];
+        setCenter(c);
+        setZoom((z) => Math.max(z, 14));
+        setLocatePoint({
+          lat: latitude,
+          lng: longitude,
+          label: "You are here",
+        });
+      },
+      () => {}
+    );
+  }, []);
+
+  const footerControls = (
+    <div className="flex items-center justify-between gap-2 flex-wrap">
+      {/* Locate */}
+      <button
+        type="button"
+        onClick={handleLocate}
+        className="px-3 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 shadow-sm"
+        title="Locate me"
+      >
+        📍 Locate
+      </button>
+
+      {/* Mode toggle */}
+      <button
+        type="button"
+        onClick={() => setSplit((s) => !s)}
+        className="px-3 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 shadow-sm"
+        title="Toggle single / side-by-side"
+      >
+        {split ? "Side-by-Side ✓" : "Single ✓"}
+      </button>
+
+      {/* Zoom controls */}
+      <div className="inline-flex rounded-md overflow-hidden border border-gray-300 bg-white shadow-sm">
+        <button
+          type="button"
+          onClick={() => setZoom((z) => Math.max(2, z - 1))}
+          className="px-3 py-2 hover:bg-gray-50"
+          title="Zoom out"
+        >
+          −
+        </button>
+        <div className="px-3 py-2 border-l border-r border-gray-300 select-none tabular-nums">
+          {zoom}
+        </div>
+        <button
+          type="button"
+          onClick={() => setZoom((z) => Math.min(19, z + 1))}
+          className="px-3 py-2 hover:bg-gray-50"
+          title="Zoom in"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <SearchProvider onGoto={handleGoto}>
       <div className="relative h-full w-full">
@@ -120,6 +189,7 @@ export default function MapView() {
               rightLayerId={rightLayer}
               mode="split"
               searchMarker={searchPoint}
+              locateMarker={locatePoint}
               onToggleMode={() => setSplit((s) => !s)}
               onViewChange={onViewChange}
             />
@@ -154,6 +224,7 @@ export default function MapView() {
               opacity={opacity}
               mode="single"
               searchMarker={searchPoint}
+              locateMarker={locatePoint}
               onToggleMode={() => setSplit((s) => !s)}
               onViewChange={onViewChange}
             />
@@ -170,9 +241,12 @@ export default function MapView() {
           </>
         )}
 
-        {/* Left pop-out menu with SearchBar pinned in the header */}
-        <SidePopout header={<SearchBar />}>
-          {/* Future controls will go here */}
+        {/* Left pop-out menu with SearchBar in header and footer controls */}
+        <SidePopout header={<SearchBar />} footer={footerControls}>
+          {/* Future controls (view-specific) will go here:
+              - Single view: <LayerOpacityPanel ... />
+              - Split view:  <LayerSelectors ... />
+          */}
         </SidePopout>
       </div>
     </SearchProvider>
