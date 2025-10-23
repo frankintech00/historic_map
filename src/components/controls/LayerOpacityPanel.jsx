@@ -1,106 +1,69 @@
-import React, { useMemo } from "react";
-import { BASE_LAYERS } from "../../config/mapSources";
-
 /**
- * LayerOpacityPanel
- * - Lets the user choose bottom and top layers (from BASE_LAYERS)
- * - Adds a visual delimiter between modern and historic layers
- * - Adjusts the opacity of the top layer only
- * - Renders as a compact panel on the top-left
+ * LayerOpacityPanel.jsx
+ * Pop-out control for adjusting the TOP layer opacity in SingleViewMap.
  *
- * Functionality unchanged — only the position moved from right to left.
+ * Props:
+ *  - value: number (0–1)
+ *  - onChange: (number) => void
+ *
+ * Behaviour:
+ *  - Shows 0–100% with a range slider.
+ *  - Debounces calls to onChange to reduce re-renders.
+ *  - Keyboard accessible; matches Leaflet-esque black-on-white styling.
  */
-export default function LayerOpacityPanel({
-  topLayer,
-  setTopLayer,
-  bottomLayer,
-  setBottomLayer,
-  opacity,
-  setOpacity,
-}) {
-  // Categorise layers once per render; prefix "nls-" marks historic.
-  const { modernLayers, historicLayers } = useMemo(() => {
-    const modern = [];
-    const historic = [];
-    for (const l of BASE_LAYERS) {
-      (l.id?.startsWith("nls-") ? historic : modern).push(l);
-    }
-    return { modernLayers: modern, historicLayers: historic };
-  }, []);
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
-  const renderOptions = () => (
-    <>
-      {modernLayers.map((layer) => (
-        <option key={layer.id} value={layer.id}>
-          {layer.name}
-        </option>
-      ))}
+export default function LayerOpacityPanel({ value = 0.7, onChange }) {
+  // Represent as 0–100 for the UI
+  const initial = Math.round((Number.isFinite(value) ? value : 0.7) * 100);
+  const [percent, setPercent] = useState(initial);
 
-      {historicLayers.length > 0 && (
-        <>
-          <option disabled value="__sep_historic__">
-            ────────── Historic Maps ──────────
-          </option>
-          {historicLayers.map((layer) => (
-            <option key={layer.id} value={layer.id}>
-              {layer.name}
-            </option>
-          ))}
-        </>
-      )}
-    </>
-  );
+  // Debounce: batch rapid slider moves (120ms feels snappy)
+  const timerRef = useRef(null);
+  const debouncedNotify = useMemo(() => {
+    return (p) => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        if (typeof onChange === "function") onChange(p / 100);
+      }, 120);
+    };
+  }, [onChange]);
+
+  useEffect(() => {
+    // Keep UI in sync if value prop changes from outside
+    const next = Math.round((Number.isFinite(value) ? value : 0.7) * 100);
+    if (next !== percent) setPercent(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  const handleInput = (e) => {
+    const p = Math.min(100, Math.max(0, Number(e.target.value) || 0));
+    setPercent(p);
+    debouncedNotify(p);
+  };
 
   return (
-    <div className="absolute top-4 left-4 z-[1000] pointer-events-auto bg-white/90 shadow rounded-lg p-4 text-sm space-y-4 w-60">
-      {/* Bottom Layer */}
-      <div>
-        <label className="block font-medium mb-1" htmlFor="lop-bottom-select">
-          Bottom Layer
-        </label>
-        <select
-          id="lop-bottom-select"
-          aria-label="Bottom map layer"
-          value={bottomLayer}
-          onChange={(e) => setBottomLayer(e.target.value)}
-          className="w-full p-1 rounded border border-slate-300"
-        >
-          {renderOptions()}
-        </select>
+    <div className="mt-4">
+      <div className="mb-1 text-sm font-medium text-gray-800">
+        Top layer opacity
       </div>
 
-      {/* Top Layer */}
-      <div>
-        <label className="block font-medium mb-1" htmlFor="lop-top-select">
-          Top Layer
-        </label>
-        <select
-          id="lop-top-select"
-          aria-label="Top map layer"
-          value={topLayer}
-          onChange={(e) => setTopLayer(e.target.value)}
-          className="w-full p-1 rounded border border-slate-300"
-        >
-          {renderOptions()}
-        </select>
-      </div>
-
-      {/* Opacity */}
-      <div>
-        <label className="block font-medium mb-1" htmlFor="lop-opacity">
-          Top Layer Opacity:{" "}
-          <span className="tabular-nums">{Math.round(opacity * 100)}%</span>
-        </label>
+      <div className="flex items-center gap-3">
         <input
-          id="lop-opacity"
           type="range"
-          min="0"
-          max="1"
-          step="0.05"
-          value={opacity}
-          onChange={(e) => setOpacity(parseFloat(e.target.value))}
-          className="w-full"
+          min={0}
+          max={100}
+          step={1}
+          value={percent}
+          onChange={handleInput}
+          className="flex-1 accent-black"
+          aria-label="Top layer opacity"
         />
+        <div className="w-14 text-right tabular-nums text-sm">{percent}%</div>
+      </div>
+
+      <div className="mt-1 text-xs text-gray-600">
+        Drag to reveal more of the bottom layer.
       </div>
     </div>
   );
