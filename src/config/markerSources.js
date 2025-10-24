@@ -19,9 +19,13 @@ export const MARKER_SOURCES = {
 
     // Field names per layer metadata
     fieldMap: {
-      title: "NMRSNAME",
-      subtitle: "COUNCIL",
-      url: "URL",
+      title: "NMRSNAME", // main name
+      altName: "ALTNAME", // alternate name
+      siteType: "SITETYPE", // site type
+      subtitle: "COUNCIL", // council / local authority
+      county: "COUNTY", // county
+      gridRef: "GRIDREF", // national grid reference
+      url: "URL", // details page
     },
 
     attribution: "© Historic Environment Scotland (Canmore)",
@@ -29,7 +33,7 @@ export const MARKER_SOURCES = {
     visibleByDefault: true,
   },
 
-  // Keep the previous source available if you want to toggle later
+  // Optional extra source retained for future toggling
   hesPropertiesInCare: {
     label: "HES Properties in Care (points)",
     type: "arcgis-feature",

@@ -5,7 +5,7 @@ import "leaflet.markercluster";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 
-// NEW: ensure default marker icons are wired for bundlers
+// Ensure default marker icons are wired for bundlers (Vite)
 import "../../lib/leaflet-setup.js";
 
 import { MARKER_SOURCES } from "../../config/markerSources.js";
@@ -14,19 +14,43 @@ import {
   fieldsFromFieldMap,
 } from "../../adapters/hesArcGis.js";
 
+/**
+ * MarkerLayer
+ * -----------
+ * API-driven, clustered markers for a configured source.
+ *
+ * - Fetches feature GeoJSON by current map bbox (debounced on move/zoom)
+ * - Respects per-source minFetchZoom
+ * - Loads layer metadata once to honour server maxRecordCount/pagination
+ * - Builds popups in this order:
+ *     NMRSNAME
+ *     ALTNAME
+ *     SITETYPE
+ *     COUNCIL
+ *     COUNTY
+ *     GRIDREF
+ *     URL (Details link)
+ */
+
 const DEV_DEBUG = true;
 
 export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
   const map = useMap();
-  const clusterRef = useRef(null);
-  const debTimerRef = useRef(null);
-  const abortRef = useRef(null);
+
+  // Leaflet/Misc refs
+  const clusterRef = useRef(null); // L.MarkerClusterGroup
+  const debTimerRef = useRef(null); // debounce timer
+  const abortRef = useRef(null); // AbortController for fetches
+  const mountedRef = useRef(false); // component mounted flag
+
+  // Per-layer metadata cache (supportsPagination, maxRecordCount)
   const metaRef = useRef({
     supportsPagination: false,
     maxRecordCount: 1000,
     loaded: false,
   });
-  const mountedRef = useRef(false);
+
+  /* ----------------------- utilities ----------------------- */
 
   function dlog(...args) {
     if (DEV_DEBUG) console.log("[MarkerLayer]", ...args);
@@ -63,26 +87,68 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
     return metaRef.current;
   }
 
+  function clearAllMarkers() {
+    if (clusterRef.current) {
+      clusterRef.current.clearLayers();
+    }
+  }
+
   function setClusterGeoJSON(geojson) {
     if (!clusterRef.current) return;
+
+    // Reset cluster content
     clusterRef.current.clearLayers();
 
-    const fieldMap = MARKER_SOURCES[sourceKey]?.fieldMap || {};
+    const fm = MARKER_SOURCES[sourceKey]?.fieldMap || {};
+
+    // Build a lightweight GeoJSON layer; popups are strings for speed.
     const gjLayer = L.geoJSON(geojson, {
       pointToLayer: (feature, latlng) => L.marker(latlng),
       onEachFeature: (feature, layer) => {
-        const props = feature.properties || {};
-        const title = props[fieldMap.title] ?? "Site";
-        const subtitle = props[fieldMap.subtitle] ?? "";
-        const href = props[fieldMap.url];
+        const p = feature.properties || {};
+        const nmrs = p[fm.title] ?? "Site";
+        const alt = p[fm.altName] ?? "";
+        const type = p[fm.siteType] ?? "";
+        const council = p[fm.subtitle] ?? "";
+        const county = p[fm.county] ?? "";
+        const grid = p[fm.gridRef] ?? "";
+        const href = p[fm.url];
 
         const html = `
           <div class="space-y-1">
-            <div style="font-weight:600">${escapeHtml(title)}</div>
+            <div style="font-weight:600">${escapeHtml(nmrs)}</div>
             ${
-              subtitle
+              alt
+                ? `<div style="font-size:.95em;opacity:.9">${escapeHtml(
+                    alt
+                  )}</div>`
+                : ""
+            }
+            ${
+              type
+                ? `<div style="font-size:.9em;opacity:.9">${escapeHtml(
+                    type
+                  )}</div>`
+                : ""
+            }
+            ${
+              council
                 ? `<div style="font-size:.9em;opacity:.8">${escapeHtml(
-                    subtitle
+                    council
+                  )}</div>`
+                : ""
+            }
+            ${
+              county
+                ? `<div style="font-size:.85em;opacity:.75">${escapeHtml(
+                    county
+                  )}</div>`
+                : ""
+            }
+            ${
+              grid
+                ? `<div style="font-size:.85em;opacity:.75">${escapeHtml(
+                    grid
                   )}</div>`
                 : ""
             }
@@ -95,7 +161,7 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
             }
           </div>
         `;
-        layer.bindPopup(html, { maxWidth: 280 });
+        layer.bindPopup(html, { maxWidth: 300 });
       },
     });
 
@@ -125,12 +191,15 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
       return;
     }
 
+    // Cancel any in-flight fetch
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
 
+    // Prepare outFields from fieldMap (only fields we know exist on the layer)
     const fields = fieldsFromFieldMap(cfg.fieldMap);
-    const meta = await ensureLayerMeta(cfg);
 
+    // Honour server-side limits
+    const meta = await ensureLayerMeta(cfg);
     const safeCfg = {
       ...cfg,
       supportsPagination: !!meta.supportsPagination,
@@ -146,6 +215,7 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
         supportsPagination: safeCfg.supportsPagination,
       });
 
+      // Adapter signature: queryFeaturesByBbox(config, options)
       const geojson = await queryFeaturesByBbox(safeCfg, {
         bounds,
         zoom,
@@ -162,6 +232,7 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
         return;
       }
       dlog("fetch error", err?.message || err);
+      setClusterGeoJSON({ type: "FeatureCollection", features: [] });
     }
   }
 
@@ -171,9 +242,12 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
     debTimerRef.current = setTimeout(runFetch, debounceMs);
   }
 
+  /* ----------------------- lifecycle ----------------------- */
+
   useEffect(() => {
     mountedRef.current = true;
 
+    // Create and attach the cluster group once
     const cluster = L.markerClusterGroup({
       spiderfyOnEveryZoom: false,
       showCoverageOnHover: false,
@@ -185,15 +259,17 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
     dlog("mounted; scheduling initial fetch");
     scheduleFetch();
 
-    const onMove = () => {
+    const onMoveOrZoom = () => {
       dlog("map moveend/zoomend");
       scheduleFetch();
     };
-    map.on("moveend zoomend", onMove);
+    map.on("moveend zoomend", onMoveOrZoom);
 
     return () => {
       mountedRef.current = false;
-      map.off("moveend zoomend", onMove);
+
+      map.off("moveend zoomend", onMoveOrZoom);
+
       if (debTimerRef.current) {
         clearTimeout(debTimerRef.current);
         debTimerRef.current = null;
@@ -214,7 +290,8 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
   return null;
 }
 
-/* ----------------- helpers ------------------ */
+/* ----------------------- helpers ----------------------- */
+
 function escapeHtml(s) {
   return String(s)
     .replaceAll("&", "&amp;")
