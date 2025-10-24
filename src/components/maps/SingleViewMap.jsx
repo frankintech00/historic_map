@@ -1,13 +1,20 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+
+// Ensure default marker icons are wired before any markers render
+import "../../lib/leaflet-setup.js";
+
 import { BASE_LAYERS } from "../../config/mapSources.js";
 import SearchPin from "../overlays/SearchPin.jsx";
 import LocatePin from "../overlays/LocatePin.jsx";
+import MarkerLayer from "../overlays/MarkerLayer.jsx";
 
 /**
  * SingleViewMap
- * Controlled by props; recentering handled inside the Leaflet context.
+ * -------------
+ * Controlled Leaflet map for the single-view mode.
+ *
  * Props:
  *  - center: [lat, lng]
  *  - zoom: number
@@ -30,24 +37,19 @@ function ViewSync({ onViewChange }) {
   return null;
 }
 
-/** Recenter whenever center/zoom change OR a new locateMarker arrives */
 function RecenterController({ center, zoom, locateMarker }) {
   const map = useMap();
 
-  // Keep map synced to external center/zoom
-  React.useEffect(() => {
-    // setView avoids weird animation conflicts
+  useEffect(() => {
     map.setView(center, zoom, { animate: false });
   }, [map, center[0], center[1], zoom]);
 
-  // Nudge focus on new locate point (even if zoom unchanged)
-  React.useEffect(() => {
+  useEffect(() => {
     if (!locateMarker) return;
     const target = [locateMarker.lat, locateMarker.lng];
     const nextZoom = Math.max(map.getZoom() ?? 0, 14);
-    // flyTo is fine now that we’re inside the map context
     map.flyTo(target, nextZoom, { duration: 0.6 });
-  }, [map, locateMarker?.lat, locateMarker?.lng]); // run when coords change
+  }, [map, locateMarker?.lat, locateMarker?.lng]);
 
   return null;
 }
@@ -63,7 +65,6 @@ export default function SingleViewMap({
   locateMarker,
   onViewChange,
 }) {
-  // Resolve layer objects from ids
   const { bottomLayer, topLayer } = useMemo(() => {
     const byId = Object.fromEntries(BASE_LAYERS.map((l) => [l.id, l]));
     return {
@@ -81,10 +82,7 @@ export default function SingleViewMap({
       zoomControl={false}
       attributionControl={true}
     >
-      {/* Base layer */}
       <TileLayer url={bottomLayer.url} attribution={bottomLayer.attribution} />
-
-      {/* Top layer with opacity */}
       {topLayer && (
         <TileLayer
           url={topLayer.url}
@@ -92,6 +90,9 @@ export default function SingleViewMap({
           opacity={opacity}
         />
       )}
+
+      {/* Canmore Terrestrial markers — bbox-scoped, debounced, clustered */}
+      <MarkerLayer sourceKey="canmoreTerrestrial" />
 
       {/* Pins */}
       {searchMarker && <SearchPin point={searchMarker} />}

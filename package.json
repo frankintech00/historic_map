@@ -10,9 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "esri-leaflet": "^3.0.19",
     "leaflet": "^1.9.4",
     "leaflet-defaulticon-compatibility": "^0.1.2",
     "leaflet-side-by-side": "^2.2.0",
+    "leaflet.markercluster": "^1.5.3",
     "lucide-react": "^0.539.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
