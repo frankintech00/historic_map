@@ -1,0 +1,82 @@
+/* Pop-out container */
+.ss-card {
+  @apply bg-ui-bg text-ui-fg rounded-2xl shadow-card border border-neutral-200;
+}
+
+/* Internal section wrapper (stack items with tidy spacing) */
+.ss-section {
+  @apply p-3 sm:p-4 space-y-2;
+}
+
+/* Section title */
+.ss-title {
+  @apply text-sm font-medium tracking-tight;
+}
+
+/* Label + control row */
+.ss-row {
+  @apply flex items-center justify-between gap-3;
+}
+.ss-label {
+  @apply text-sm text-ui-sub;
+}
+
+/* Select / input shell (black-on-white Leaflet-like) */
+.ss-input {
+  @apply w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none;
+}
+.ss-input:focus {
+  @apply ring-1 ring-ui-ring;
+}
+
+/* Slider (range input) */
+.ss-slider {
+  @apply w-full appearance-none h-1.5 rounded-full bg-neutral-200;
+}
+.ss-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 18px;
+  width: 18px;
+  border-radius: 9999px;
+  background: #111111;
+  cursor: pointer;
+}
+.ss-slider::-moz-range-thumb {
+  height: 18px;
+  width: 18px;
+  border-radius: 9999px;
+  background: #111111;
+  cursor: pointer;
+}
+
+/* Icon button (for Zoom/Locate/Toggle) */
+.ss-icon-btn {
+  @apply inline-flex items-center justify-center rounded-xl border border-neutral-300 bg-white p-2;
+}
+.ss-icon-btn:focus-visible {
+  @apply outline-none ring-1 ring-ui-ring;
+}
+.ss-icon-btn--active {
+  @apply border-neutral-900;
+}
+
+/* Footer toolbar container */
+.ss-toolbar {
+  @apply flex items-center justify-between gap-2 p-2 sm:p-3 border-t border-neutral-200;
+}
+
+/* Pop-out wrapper: mobile-first full-width, desktop fixed width */
+.ss-popout {
+  @apply fixed inset-x-2 bottom-2 z-popout ss-card;
+}
+@media (min-width: 640px) {
+  .ss-popout {
+    @apply left-auto right-2 w-[320px];
+  }
+}
+
+/* Keep controls above map tiles */
+.leaflet-control-container,
+.ss-popout {
+  z-index: 1000; /* aligns with theme.zIndex.popout */
+}

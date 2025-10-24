@@ -1,74 +1,102 @@
 /**
- * LayerSelectorsPanel.jsx
- * Pop-out friendly stacked selectors for choosing map layers.
+ * LayerSelectorsPanel.jsx — mobile-first selectors for your array-based BASE_LAYERS.
  *
- * Usage:
- *  <LayerSelectorsPanel
- *     a={{ label: "Left layer", value: leftId, onChange: setLeft }}
- *     b={{ label: "Right layer", value: rightId, onChange: setRight }}
- *     layers={BASE_LAYERS}
- *  />
+ * Props:
+ *  - a: { label: string, value: string, onChange: (id)=>void }
+ *  - b: same as a
+ *  - layers?: Array<{ id: string, name: string, ... }>
  *
- * - Groups options into Modern / Historic via id prefix 'nls-'
- * - Uses <optgroup> for clarity and matches Leaflet UI feel
+ * Notes:
+ *  - Uses your BASE_LAYERS array by default (so callers don’t need to pass it).
+ *  - Groups options by id prefix "nls-" → Historic, otherwise Modern.
+ *  - Null-safe; if layers are missing, shows a disabled placeholder.
  */
 import React from "react";
-import { BASE_LAYERS } from "../../config/mapSources";
+import BASE_LAYERS from "../../config/mapSources.js";
 
-export default function LayerSelectorsPanel({ a, b, layers = BASE_LAYERS }) {
-  const modern = layers.filter((l) => !l.id.startsWith("nls-"));
-  const historic = layers.filter((l) => l.id.startsWith("nls-"));
+export default function LayerSelectorsPanel({ a, b, layers }) {
+  const all = Array.isArray(layers)
+    ? layers
+    : Array.isArray(BASE_LAYERS)
+    ? BASE_LAYERS
+    : [];
+  const { modern, historic } = groupLayers(all);
 
-  const renderOptions = () => (
+  const hasAny = modern.length > 0 || historic.length > 0;
+
+  return (
+    <div className="space-y-3">
+      {/* A selector */}
+      <div className="ss-title">{a?.label ?? "Top layer"}</div>
+      <select
+        className="ss-input"
+        value={a?.value ?? ""}
+        onChange={(e) => a?.onChange?.(e.target.value)}
+        disabled={!hasAny || !a?.onChange}
+        aria-label={a?.label ?? "Top layer"}
+      >
+        {hasAny ? renderGroups(modern, historic) : <NoOptions />}
+      </select>
+
+      {/* B selector */}
+      <div className="ss-title pt-2">{b?.label ?? "Bottom layer"}</div>
+      <select
+        className="ss-input"
+        value={b?.value ?? ""}
+        onChange={(e) => b?.onChange?.(e.target.value)}
+        disabled={!hasAny || !b?.onChange}
+        aria-label={b?.label ?? "Bottom layer"}
+      >
+        {hasAny ? renderGroups(modern, historic) : <NoOptions />}
+      </select>
+    </div>
+  );
+}
+
+/* -------- helpers -------- */
+
+function groupLayers(arr) {
+  const modern = [];
+  const historic = [];
+  for (const item of arr) {
+    if (!item || !item.id || !item.name) continue;
+    const entry = [item.id, item.name];
+    (String(item.id).startsWith("nls-") ? historic : modern).push(entry);
+  }
+  modern.sort((a, b) => a[1].localeCompare(b[1]));
+  historic.sort((a, b) => a[1].localeCompare(b[1]));
+  return { modern, historic };
+}
+
+function renderGroups(modern, historic) {
+  return (
     <>
       {modern.length > 0 && (
         <optgroup label="Modern">
-          {modern.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.name}
+          {modern.map(([id, name]) => (
+            <option key={id} value={id}>
+              {name}
             </option>
           ))}
         </optgroup>
       )}
       {historic.length > 0 && (
         <optgroup label="Historic">
-          {historic.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.name}
+          {historic.map(([id, name]) => (
+            <option key={id} value={id}>
+              {name}
             </option>
           ))}
         </optgroup>
       )}
     </>
   );
+}
 
+function NoOptions() {
   return (
-    <div className="space-y-4">
-      <div>
-        <div className="mb-1 text-sm font-medium text-gray-800">
-          {a?.label ?? "Layer A"}
-        </div>
-        <select
-          value={a?.value}
-          onChange={(e) => a?.onChange && a.onChange(e.target.value)}
-          className="w-full p-2 rounded border border-slate-300 bg-white"
-        >
-          {renderOptions()}
-        </select>
-      </div>
-
-      <div>
-        <div className="mb-1 text-sm font-medium text-gray-800">
-          {b?.label ?? "Layer B"}
-        </div>
-        <select
-          value={b?.value}
-          onChange={(e) => b?.onChange && b.onChange(e.target.value)}
-          className="w-full p-2 rounded border border-slate-300 bg-white"
-        >
-          {renderOptions()}
-        </select>
-      </div>
-    </div>
+    <option value="" disabled>
+      No layers available
+    </option>
   );
 }
