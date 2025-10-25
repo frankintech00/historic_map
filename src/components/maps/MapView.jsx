@@ -110,6 +110,9 @@ export default function MapView() {
     );
   }, []);
 
+  // -------- NEW: marker visibility toggle (Canmore) --------
+  const [canmoreVisible, setCanmoreVisible] = useState(true);
+
   // Footer controls
   const footerControls = (
     <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -173,6 +176,8 @@ export default function MapView() {
             locateMarker={locatePoint}
             onToggleMode={() => setSplit((s) => !s)}
             onViewChange={onViewChange}
+            /* NEW: pass marker visibility */
+            canmoreVisible={canmoreVisible}
           />
         ) : (
           <SingleViewMap
@@ -186,6 +191,8 @@ export default function MapView() {
             locateMarker={locatePoint}
             onToggleMode={() => setSplit((s) => !s)}
             onViewChange={onViewChange}
+            /* NEW: pass marker visibility */
+            canmoreVisible={canmoreVisible}
           />
         )}
 
@@ -209,22 +216,57 @@ export default function MapView() {
               />
 
               <LayerOpacityPanel value={opacity} onChange={setOpacity} />
+
+              {/* NEW: Data layers block (below existing single-view content) */}
+              <div className="mt-3 pt-3 border-t border-black/10">
+                <div className="text-xs font-semibold uppercase tracking-wide mb-1">
+                  Data layers
+                </div>
+                <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="accent-black cursor-pointer"
+                    checked={canmoreVisible}
+                    onChange={() => setCanmoreVisible((v) => !v)}
+                  />
+                  <span>Canmore Sites (Terrestrial)</span>
+                </label>
+              </div>
             </>
           ) : (
-            // Split view: Left/Right selectors (no opacity control here)
-            <LayerSelectorsPanel
-              a={{
-                label: "Left layer",
-                value: leftLayer,
-                onChange: (id) => setLeftLayer(ensureValid(id, defaults.left)),
-              }}
-              b={{
-                label: "Right layer",
-                value: rightLayer,
-                onChange: (id) =>
-                  setRightLayer(ensureValid(id, defaults.right)),
-              }}
-            />
+            <>
+              {/* Split view: Left/Right selectors (no opacity control here) */}
+              <LayerSelectorsPanel
+                a={{
+                  label: "Left layer",
+                  value: leftLayer,
+                  onChange: (id) =>
+                    setLeftLayer(ensureValid(id, defaults.left)),
+                }}
+                b={{
+                  label: "Right layer",
+                  value: rightLayer,
+                  onChange: (id) =>
+                    setRightLayer(ensureValid(id, defaults.right)),
+                }}
+              />
+
+              {/* NEW: Data layers block (below existing split-view content) */}
+              <div className="mt-3 pt-3 border-t border-black/10">
+                <div className="text-xs font-semibold uppercase tracking-wide mb-1">
+                  Data layers
+                </div>
+                <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="accent-black cursor-pointer"
+                    checked={canmoreVisible}
+                    onChange={() => setCanmoreVisible((v) => !v)}
+                  />
+                  <span>Canmore Sites (Terrestrial)</span>
+                </label>
+              </div>
+            </>
           )}
         </SidePopout>
       </div>

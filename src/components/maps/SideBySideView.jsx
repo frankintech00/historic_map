@@ -6,6 +6,7 @@ import "leaflet-side-by-side";
 import { BASE_LAYERS } from "../../config/mapSources.js";
 import SearchPin from "../overlays/SearchPin.jsx";
 import LocatePin from "../overlays/LocatePin.jsx";
+import MarkerLayer from "../overlays/MarkerLayer.jsx"; // NEW
 
 /**
  * SideBySideView
@@ -21,6 +22,7 @@ import LocatePin from "../overlays/LocatePin.jsx";
  *  - searchMarker: { lat, lng, label? } | null
  *  - locateMarker: { lat, lng, label? } | null
  *  - onViewChange: (centerArray, zoomNumber) => void
+ *  - canmoreVisible: boolean                // NEW: toggle visibility of Canmore markers
  */
 
 function ViewSync({ onViewChange }) {
@@ -84,6 +86,8 @@ export default function SideBySideView({
   searchMarker,
   locateMarker,
   onViewChange,
+  // NEW:
+  canmoreVisible,
 }) {
   // Resolve layer objects from ids
   const { leftLayer, rightLayer } = useMemo(() => {
@@ -121,6 +125,9 @@ export default function SideBySideView({
 
       {/* Build the divider from those layers */}
       <SideBySideControl leftLayerRef={leftRef} rightLayerRef={rightRef} />
+
+      {/* NEW: Canmore markers overlay (shown across the whole map) */}
+      {canmoreVisible && <MarkerLayer sourceKey="canmoreTerrestrial" />}
 
       {/* Overlays */}
       {searchMarker && <SearchPin point={searchMarker} />}

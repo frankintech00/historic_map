@@ -25,6 +25,7 @@ import MarkerLayer from "../overlays/MarkerLayer.jsx";
  *  - searchMarker: { lat, lng, label? } | null
  *  - locateMarker: { lat, lng, label? } | null
  *  - onViewChange: (centerArray, zoomNumber) => void
+ *  - canmoreVisible: boolean            // NEW: toggle visibility of Canmore markers
  */
 
 function ViewSync({ onViewChange }) {
@@ -64,6 +65,8 @@ export default function SingleViewMap({
   searchMarker,
   locateMarker,
   onViewChange,
+  // NEW:
+  canmoreVisible,
 }) {
   const { bottomLayer, topLayer } = useMemo(() => {
     const byId = Object.fromEntries(BASE_LAYERS.map((l) => [l.id, l]));
@@ -92,7 +95,7 @@ export default function SingleViewMap({
       )}
 
       {/* Canmore Terrestrial markers — bbox-scoped, debounced, clustered */}
-      <MarkerLayer sourceKey="canmoreTerrestrial" />
+      {canmoreVisible && <MarkerLayer sourceKey="canmoreTerrestrial" />}
 
       {/* Pins */}
       {searchMarker && <SearchPin point={searchMarker} />}
