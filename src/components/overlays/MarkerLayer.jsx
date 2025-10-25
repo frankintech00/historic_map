@@ -19,20 +19,18 @@ import {
  * -----------
  * API-driven, clustered markers for a configured source.
  *
- * - Fetches feature GeoJSON by current map bbox (debounced on move/zoom)
- * - Respects per-source minFetchZoom
- * - Loads layer metadata once to honour server maxRecordCount/pagination
- * - Builds popups in this order:
- *     NMRSNAME
- *     ALTNAME
- *     SITETYPE
- *     COUNCIL
- *     COUNTY
- *     GRIDREF
- *     URL (Details link)
+ * Clustering tuned for dense cities:
+ *  - maxClusterRadius: 140px  (more aggressive grouping)
+ *  - disableClusteringAtZoom: 21 (keep clustering until very deep zoom)
+ *  - spiderfyOnClick: false (clicking a cluster zooms instead of exploding)
+ *  - zoomToBoundsOnClick: true (quickly drills into dense areas)
  */
 
 const DEV_DEBUG = true;
+
+// Stronger clustering settings
+const CLUSTER_MAX_RADIUS = 80; // px
+const CLUSTER_DISABLE_AT_ZOOM = 18; // cluster until Z18; split at Z19+
 
 export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
   const map = useMap();
@@ -249,9 +247,13 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
 
     // Create and attach the cluster group once
     const cluster = L.markerClusterGroup({
+      maxClusterRadius: CLUSTER_MAX_RADIUS,
+      disableClusteringAtZoom: CLUSTER_DISABLE_AT_ZOOM,
+      spiderfyOnClick: false,
+      zoomToBoundsOnClick: true,
       spiderfyOnEveryZoom: false,
       showCoverageOnHover: false,
-      disableClusteringAtZoom: 15,
+      chunkedLoading: true,
     });
     clusterRef.current = cluster;
     map.addLayer(cluster);
