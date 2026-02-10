@@ -126,7 +126,7 @@ export default function ControlsBar({
           card.style.width = `${CARD}px`;
           const btn = L.DomUtil.create(
             "a",
-            "block flex items-center justify-center rounded outline-none focus:ring-2 focus:ring-sky-400 hover:bg-slate-50",
+            "block flex items-center justify-center rounded outline-none focus:ring-2 focus:ring-ui-ring hover:bg-slate-50",
             card
           );
           btn.href = "#";
@@ -172,7 +172,7 @@ export default function ControlsBar({
         const mkZoomBtn = (title, onClick, imgSrc, addRightBorder) => {
           const a = L.DomUtil.create(
             "a",
-            "flex items-center justify-center hover:bg-slate-50 outline-none focus:ring-2 focus:ring-sky-400",
+            "flex items-center justify-center hover:bg-slate-50 outline-none focus:ring-2 focus:ring-ui-ring",
             row
           );
           a.href = "#";
@@ -332,8 +332,8 @@ function locateOnce({ map, blueIcon, minZoom, targetZoom, highAccuracy }) {
     circle = L.circle([lat, lng], {
       radius: acc,
       weight: 1,
-      color: "#0EA5E9",
-      fillColor: "#38BDF8",
+      color: "#0EA5E9", // ui.accent from theme
+      fillColor: "#38BDF8", // ui.accent-light from theme
       fillOpacity: 0.15,
     }).addTo(overlay);
 

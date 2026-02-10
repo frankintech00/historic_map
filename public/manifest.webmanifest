@@ -1,0 +1,20 @@
+{
+  "name": "Historic Maps UK",
+  "short_name": "Historic Maps",
+  "description": "Explore historical and modern maps of the UK side-by-side",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f1f5f9",
+  "theme_color": "#0EA5E9",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "navigation"],
+  "screenshots": []
+}

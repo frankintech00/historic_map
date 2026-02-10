@@ -26,7 +26,7 @@
   @apply w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none;
 }
 .ss-input:focus {
-  @apply ring-1 ring-ui-ring;
+  @apply ring-1 ring-ui-accent;
 }
 
 /* Slider (range input) */
@@ -79,4 +79,125 @@
 .leaflet-control-container,
 .ss-popout {
   z-index: 1000; /* aligns with theme.zIndex.popout */
+}
+
+/* ========== Marker Popup Styling ========== */
+.ss-popup-title {
+  @apply font-semibold text-base text-ui-fg;
+}
+.ss-popup-subtitle {
+  @apply text-sm text-ui-fg opacity-90;
+}
+.ss-popup-meta {
+  @apply text-sm text-ui-sub opacity-80;
+}
+.ss-popup-detail {
+  @apply text-xs text-ui-sub opacity-75;
+}
+.ss-popup-link {
+  @apply inline-flex items-center gap-1 text-sm text-ui-ring underline
+         decoration-1 hover:decoration-2 transition-all;
+}
+.ss-popup-divider {
+  @apply my-2 border-t border-neutral-200;
+}
+
+/* ========== Enhanced Slider ========== */
+.ss-slider-enhanced {
+  @apply w-full appearance-none h-1.5 rounded-full bg-neutral-200;
+}
+.ss-slider-enhanced::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 9999px;
+  background: #111111;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: all 150ms ease;
+}
+.ss-slider-enhanced::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+.ss-slider-enhanced::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 9999px;
+  background: #111111;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: all 150ms ease;
+  border: none;
+}
+.ss-slider-enhanced::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* ========== Search Results ========== */
+.ss-result-item {
+  @apply w-full text-left px-4 py-3 min-h-[44px] hover:bg-neutral-50
+         focus:outline-none focus:bg-neutral-100
+         transition-colors duration-150;
+}
+.ss-result-label {
+  @apply text-sm text-ui-fg font-medium;
+}
+.ss-result-type {
+  @apply text-xs text-ui-sub mt-0.5;
+}
+
+/* ========== Data Layer Toggle ========== */
+.ss-data-toggle {
+  @apply flex items-center gap-3 px-3 py-3 min-h-[56px] rounded-lg
+         border border-neutral-200 bg-white hover:bg-neutral-50
+         transition-colors duration-150 cursor-pointer select-none;
+}
+.ss-data-toggle:has(input:checked) {
+  @apply border-neutral-900 bg-neutral-50;
+}
+.ss-checkbox {
+  @apply w-5 h-5 rounded border-neutral-300 text-ui-accent
+         focus:ring-2 focus:ring-ui-accent cursor-pointer;
+}
+
+/* ========== Leaflet Control Enhancements ========== */
+.ss-leaflet-control {
+  @apply bg-white border border-neutral-300 rounded-lg shadow-card
+         backdrop-blur-sm bg-white/95;
+}
+.ss-leaflet-btn {
+  @apply inline-flex items-center justify-center w-9 h-9
+         hover:bg-neutral-50 focus:outline-none focus:ring-2
+         focus:ring-ui-accent transition-colors duration-150 rounded;
+}
+.ss-leaflet-btn:disabled {
+  @apply opacity-40 cursor-not-allowed pointer-events-none;
+}
+
+/* ========== Footer Controls ========== */
+.ss-footer-btn {
+  @apply px-3 py-2.5 min-h-[44px] text-sm font-medium rounded-lg
+         border border-neutral-300 bg-white hover:bg-neutral-50
+         shadow-sm transition-colors duration-150
+         focus:outline-none focus:ring-2 focus:ring-ui-accent;
+}
+.ss-footer-btn-group {
+  @apply inline-flex rounded-lg overflow-hidden
+         border border-neutral-300 shadow-sm bg-white;
+}
+.ss-footer-btn-group > button {
+  @apply px-4 py-2.5 min-h-[44px] min-w-[44px] text-sm text-ui-accent font-medium
+         hover:bg-sky-50 active:bg-sky-100
+         transition-colors duration-150
+         focus:outline-none focus:ring-1 focus:ring-inset focus:ring-ui-accent;
+}
+.ss-footer-btn-group > button:not(:last-child) {
+  @apply border-r border-neutral-300;
+}
+
+/* ========== Utilities ========== */
+.ss-divider {
+  @apply border-t border-neutral-200;
 }

@@ -24,6 +24,8 @@ export default {
           fg: "#111111",
           sub: "#6b7280", // grey-500
           ring: "#111111",
+          accent: "#0EA5E9", // sky-500 - used for interactive elements
+          "accent-light": "#38BDF8", // sky-400 - lighter shade
         },
       },
     },

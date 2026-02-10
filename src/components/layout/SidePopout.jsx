@@ -9,7 +9,8 @@ import React, { useEffect, useRef, useState } from "react";
  *     • When CLOSED: a right-chevron tab to open.
  *
  * Props:
- *  - defaultOpen?: boolean
+ *  - open?: boolean                      // controlled mode
+ *  - defaultOpen?: boolean               // uncontrolled mode
  *  - widthClasses?: string               // override widths if needed
  *  - overlay?: boolean                   // optional dim
  *  - onOpenChange?: (open: boolean) => void
@@ -18,6 +19,7 @@ import React, { useEffect, useRef, useState } from "react";
  *  - children?: React.ReactNode
  */
 export default function SidePopout({
+  open: controlledOpen,
   defaultOpen = true,
   widthClasses,
   overlay = false,
@@ -26,12 +28,25 @@ export default function SidePopout({
   footer,
   children,
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const drawerRef = useRef(null);
 
+  // Use controlled state if provided, otherwise use internal state
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+
+  const handleToggle = (newState) => {
+    if (!isControlled) {
+      setInternalOpen(newState);
+    }
+    onOpenChange?.(newState);
+  };
+
   useEffect(() => {
-    onOpenChange?.(open);
-  }, [open, onOpenChange]);
+    if (!isControlled) {
+      onOpenChange?.(internalOpen);
+    }
+  }, [internalOpen, onOpenChange, isControlled]);
 
   const widths = widthClasses ?? "w-[88vw] max-w-sm sm:w-80 md:w-96"; // mobile-first, clamp on larger screens
 
@@ -41,7 +56,7 @@ export default function SidePopout({
       {overlay && open && (
         <div
           className="fixed inset-0 z-[1090] bg-black/30"
-          onClick={() => setOpen(false)}
+          onClick={() => handleToggle(false)}
           aria-hidden="true"
         />
       )}
@@ -71,12 +86,15 @@ export default function SidePopout({
           <button
             type="button"
             aria-label="Hide menu"
-            onClick={() => setOpen(false)}
+            onClick={() => handleToggle(false)}
             className="
-              absolute -right-7 top-1/2 -translate-y-1/2
-              h-12 w-7 flex items-center justify-center
-              bg-white/80 backdrop-blur-md
-              border border-gray-200 shadow rounded-r-xl
+              absolute -right-8 top-1/2 -translate-y-1/2
+              h-14 w-8 flex items-center justify-center
+              bg-ui-accent text-white
+              border border-ui-accent shadow-lg rounded-r-xl
+              hover:bg-sky-600 active:bg-sky-700
+              transition-all duration-200
+              focus:outline-none focus:ring-2 focus:ring-ui-accent focus:ring-offset-2
             "
           >
             <Chevron left />
@@ -104,12 +122,16 @@ export default function SidePopout({
         <button
           type="button"
           aria-label="Show menu"
-          onClick={() => setOpen(true)}
+          onClick={() => handleToggle(true)}
           className="
             fixed left-0 top-1/2 -translate-y-1/2 z-[1100]
-            h-12 w-7 flex items-center justify-center
-            bg-white/80 backdrop-blur-md
-            border border-gray-200 shadow rounded-r-xl
+            h-14 w-8 flex items-center justify-center
+            bg-ui-accent text-white
+            border border-ui-accent shadow-lg rounded-r-xl
+            hover:bg-sky-600 active:bg-sky-700
+            transition-all duration-200
+            focus:outline-none focus:ring-2 focus:ring-ui-accent focus:ring-offset-2
+            animate-pulse
           "
         >
           {/* pointing right */}
@@ -124,8 +146,8 @@ function Chevron({ left = false }) {
   return (
     <svg
       viewBox="0 0 24 24"
-      width="18"
-      height="18"
+      width="20"
+      height="20"
       aria-hidden="true"
       focusable="false"
       className={left ? "rotate-180" : ""}
@@ -134,7 +156,7 @@ function Chevron({ left = false }) {
         d="M9 6l6 6-6 6"
         fill="none"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

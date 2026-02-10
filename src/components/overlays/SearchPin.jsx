@@ -1,33 +1,51 @@
 import React from "react";
-import { Marker, Popup, useMap } from "react-leaflet";
+import { Marker, Popup, Circle, useMap } from "react-leaflet";
 import L from "leaflet";
 
 /**
- * LocatePin
- * - Simple blue dot marker, same visual style as SearchPin.
- * - Hides at low zoom (to avoid clutter), shows >= 11.
+ * SearchPin
+ * - Red pin marker with circle ring to show search result location
+ * - Always visible (doesn't hide at low zoom like LocatePin)
  *
  * Props:
  * - point: { lat: number, lng: number, label?: string }
  */
 const icon = new L.DivIcon({
-  className: "locate-pin",
+  className: "search-pin",
   html: `<div style="
-    width:18px;height:18px;border-radius:9999px;background:#2563eb;
-    border:2px solid white;box-shadow:0 0 0 1px rgba(0,0,0,.2);
+    width:20px;height:20px;border-radius:9999px;background:#dc2626;
+    border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,.3);
   "></div>`,
-  iconSize: [18, 18],
-  iconAnchor: [9, 9],
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
 });
 
-export default function LocatePin({ point }) {
+export default function SearchPin({ point }) {
   const map = useMap();
   if (!point) return null;
-  if (map.getZoom() < 11) return null;
+
+  const zoom = map.getZoom();
+  // Calculate radius based on zoom level (smaller at higher zoom)
+  const radius = Math.max(50, 800 / Math.pow(2, zoom - 10));
 
   return (
-    <Marker position={[point.lat, point.lng]} icon={icon}>
-      {point.label && <Popup>{point.label}</Popup>}
-    </Marker>
+    <>
+      {/* Outer circle ring */}
+      <Circle
+        center={[point.lat, point.lng]}
+        radius={radius}
+        pathOptions={{
+          color: "#dc2626",
+          fillColor: "#dc2626",
+          fillOpacity: 0.1,
+          weight: 2,
+          opacity: 0.6,
+        }}
+      />
+      {/* Red pin marker */}
+      <Marker position={[point.lat, point.lng]} icon={icon}>
+        {point.label && <Popup>{point.label}</Popup>}
+      </Marker>
+    </>
   );
 }

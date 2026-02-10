@@ -113,48 +113,42 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
         const href = p[fm.url];
 
         const html = `
-          <div class="space-y-1">
-            <div style="font-weight:600">${escapeHtml(nmrs)}</div>
+          <div class="space-y-1.5">
+            <div class="ss-popup-title">${escapeHtml(nmrs)}</div>
             ${
               alt
-                ? `<div style="font-size:.95em;opacity:.9">${escapeHtml(
-                    alt
-                  )}</div>`
+                ? `<div class="ss-popup-subtitle">${escapeHtml(alt)}</div>`
                 : ""
             }
             ${
               type
-                ? `<div style="font-size:.9em;opacity:.9">${escapeHtml(
-                    type
-                  )}</div>`
+                ? `<div class="ss-popup-meta">${escapeHtml(type)}</div>`
                 : ""
             }
             ${
               council
-                ? `<div style="font-size:.9em;opacity:.8">${escapeHtml(
-                    council
-                  )}</div>`
+                ? `<div class="ss-popup-meta">${escapeHtml(council)}</div>`
                 : ""
             }
             ${
               county
-                ? `<div style="font-size:.85em;opacity:.75">${escapeHtml(
-                    county
-                  )}</div>`
+                ? `<div class="ss-popup-detail">${escapeHtml(county)}</div>`
                 : ""
             }
             ${
               grid
-                ? `<div style="font-size:.85em;opacity:.75">${escapeHtml(
-                    grid
-                  )}</div>`
+                ? `<div class="ss-popup-detail">${escapeHtml(grid)}</div>`
                 : ""
             }
             ${
               href
-                ? `<div style="margin-top:.3em"><a href="${escapeAttr(
-                    href
-                  )}" target="_blank" rel="noopener">Details</a></div>`
+                ? `<div class="ss-popup-divider"></div>
+                   <a href="${escapeAttr(href)}"
+                      class="ss-popup-link"
+                      target="_blank"
+                      rel="noopener">
+                     View Details →
+                   </a>`
                 : ""
             }
           </div>

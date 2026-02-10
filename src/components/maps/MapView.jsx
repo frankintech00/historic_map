@@ -37,6 +37,11 @@ export default function MapView() {
   // Mode
   const [split, setSplit] = useState(false);
 
+  // Sidebar state - default closed on mobile, open on desktop
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    return window.innerWidth >= 768; // md breakpoint
+  });
+
   // ---------- compute safe defaults once ----------
   const defaults = useMemo(() => {
     const modern = firstModern();
@@ -88,7 +93,12 @@ export default function MapView() {
   const onViewChange = useCallback((c, z) => {
     setCenter(c);
     setZoom(z);
-  }, []);
+
+    // Auto-hide sidebar on mobile when map is moved
+    if (window.innerWidth < 768 && sidebarOpen) {
+      setSidebarOpen(false);
+    }
+  }, [sidebarOpen]);
 
   // Locate
   const [locatePoint, setLocatePoint] = useState(null);
@@ -120,8 +130,8 @@ export default function MapView() {
       <button
         type="button"
         onClick={handleLocate}
-        className="px-3 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 shadow-sm"
-        title="Locate me"
+        className="ss-footer-btn"
+        title="Find my location"
       >
         📍 Locate
       </button>
@@ -130,30 +140,30 @@ export default function MapView() {
       <button
         type="button"
         onClick={() => setSplit((s) => !s)}
-        className="px-3 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 shadow-sm"
+        className="ss-footer-btn"
         title="Toggle split view"
       >
-        {split ? "Single view" : "Side-by-side"}
+        {split ? "⊟ Single" : "⊞ Split"}
       </button>
 
       {/* Zoom controls */}
-      <div className="inline-flex rounded-md overflow-hidden border border-gray-300 bg-white shadow-sm">
+      <div className="ss-footer-btn-group" role="group" aria-label="Zoom controls">
         <button
           type="button"
           onClick={() => setZoom((z) => Math.max(2, z - 1))}
-          className="px-3 py-2 hover:bg-gray-50"
           title="Zoom out"
+          aria-label="Zoom out"
         >
           −
         </button>
-        <div className="px-3 py-2 border-l border-r border-gray-300 select-none tabular-nums">
+        <div className="px-3 py-2 select-none tabular-nums text-sm font-medium">
           {zoom}
         </div>
         <button
           type="button"
           onClick={() => setZoom((z) => Math.min(19, z + 1))}
-          className="px-3 py-2 hover:bg-gray-50"
           title="Zoom in"
+          aria-label="Zoom in"
         >
           +
         </button>
@@ -197,7 +207,12 @@ export default function MapView() {
         )}
 
         {/* Left pop-out with SearchBar in header and footer controls */}
-        <SidePopout header={<SearchBar />} footer={footerControls}>
+        <SidePopout
+          open={sidebarOpen}
+          onOpenChange={setSidebarOpen}
+          header={<SearchBar />}
+          footer={footerControls}
+        >
           {/* Single view: Bottom/Top selectors + Opacity */}
           {!split ? (
             <>
@@ -218,19 +233,27 @@ export default function MapView() {
               <LayerOpacityPanel value={opacity} onChange={setOpacity} />
 
               {/* NEW: Data layers block (below existing single-view content) */}
-              <div className="mt-3 pt-3 border-t border-black/10">
-                <div className="text-xs font-semibold uppercase tracking-wide mb-1">
-                  Data layers
+              <div className="space-y-3">
+                <div className="ss-divider"></div>
+                <div>
+                  <div className="ss-title mb-3">Data Layers</div>
+                  <label className="ss-data-toggle">
+                    <input
+                      type="checkbox"
+                      className="ss-checkbox"
+                      checked={canmoreVisible}
+                      onChange={() => setCanmoreVisible((v) => !v)}
+                    />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-ui-fg">
+                        Canmore Sites
+                      </div>
+                      <div className="text-xs text-ui-sub">
+                        Historic Scotland terrestrial archaeology
+                      </div>
+                    </div>
+                  </label>
                 </div>
-                <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="accent-black cursor-pointer"
-                    checked={canmoreVisible}
-                    onChange={() => setCanmoreVisible((v) => !v)}
-                  />
-                  <span>Canmore Sites (Terrestrial)</span>
-                </label>
               </div>
             </>
           ) : (
@@ -252,19 +275,27 @@ export default function MapView() {
               />
 
               {/* NEW: Data layers block (below existing split-view content) */}
-              <div className="mt-3 pt-3 border-t border-black/10">
-                <div className="text-xs font-semibold uppercase tracking-wide mb-1">
-                  Data layers
+              <div className="space-y-3">
+                <div className="ss-divider"></div>
+                <div>
+                  <div className="ss-title mb-3">Data Layers</div>
+                  <label className="ss-data-toggle">
+                    <input
+                      type="checkbox"
+                      className="ss-checkbox"
+                      checked={canmoreVisible}
+                      onChange={() => setCanmoreVisible((v) => !v)}
+                    />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-ui-fg">
+                        Canmore Sites
+                      </div>
+                      <div className="text-xs text-ui-sub">
+                        Historic Scotland terrestrial archaeology
+                      </div>
+                    </div>
+                  </label>
                 </div>
-                <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="accent-black cursor-pointer"
-                    checked={canmoreVisible}
-                    onChange={() => setCanmoreVisible((v) => !v)}
-                  />
-                  <span>Canmore Sites (Terrestrial)</span>
-                </label>
               </div>
             </>
           )}
