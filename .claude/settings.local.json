@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(test:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(ls -la \"D:\\\\Docker\\\\historic_map\\\\src\\\\components\"\" 2>/dev/null || find \"D:/Docker/historic_map/src/components\" -type f -name \"*.jsx \")",
+      "Bash(npx tsc:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(docker-compose build:*)"
     ]
   }
 }
