@@ -22,7 +22,7 @@ import MarkerLayer from "../overlays/MarkerLayer.jsx"; // NEW
  *  - searchMarker: { lat, lng, label? } | null
  *  - locateMarker: { lat, lng, label? } | null
  *  - onViewChange: (centerArray, zoomNumber) => void
- *  - canmoreVisible: boolean                // NEW: toggle visibility of Canmore markers
+ *  - activeSource: string | null             // active data layer key, or null for none
  */
 
 function ViewSync({ onViewChange }) {
@@ -86,8 +86,7 @@ export default function SideBySideView({
   searchMarker,
   locateMarker,
   onViewChange,
-  // NEW:
-  canmoreVisible,
+  activeSource,
 }) {
   // Resolve layer objects from ids
   const { leftLayer, rightLayer } = useMemo(() => {
@@ -126,8 +125,8 @@ export default function SideBySideView({
       {/* Build the divider from those layers */}
       <SideBySideControl leftLayerRef={leftRef} rightLayerRef={rightRef} />
 
-      {/* NEW: Canmore markers overlay (shown across the whole map) */}
-      {canmoreVisible && <MarkerLayer sourceKey="canmoreTerrestrial" />}
+      {/* Data layer markers overlay */}
+      {activeSource && <MarkerLayer sourceKey={activeSource} />}
 
       {/* Overlays */}
       {searchMarker && <SearchPin point={searchMarker} />}

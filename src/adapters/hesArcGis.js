@@ -64,6 +64,23 @@ function arcFeatureToGeoJSON(arcFeature) {
     }
   }
 
+  // Polygon: centroid of outer ring
+  if (
+    Array.isArray(arcFeature.geometry.rings) &&
+    arcFeature.geometry.rings.length > 0
+  ) {
+    const ring = arcFeature.geometry.rings[0];
+    if (ring.length > 0) {
+      let sumX = 0, sumY = 0;
+      for (const [x, y] of ring) { sumX += x; sumY += y; }
+      return {
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [sumX / ring.length, sumY / ring.length] },
+        properties: { ...arcFeature.attributes },
+      };
+    }
+  }
+
   return null;
 }
 

@@ -5,6 +5,10 @@
 
 import React, { useMemo, useState, useCallback, useEffect } from "react";
 import { BASE_LAYERS } from "../../config/mapSources.js";
+import {
+  MARKER_SOURCES,
+  DEFAULT_MARKER_SOURCE_KEY,
+} from "../../config/markerSources.js";
 import SingleViewMap from "./SingleViewMap.jsx";
 import SideBySideView from "./SideBySideView.jsx";
 import LayerSelectorsPanel from "../controls/LayerSelectorsPanel.jsx";
@@ -120,8 +124,54 @@ export default function MapView() {
     );
   }, []);
 
-  // -------- NEW: marker visibility toggle (Canmore) --------
-  const [canmoreVisible, setCanmoreVisible] = useState(true);
+  // Active data source — null means "none"
+  const [activeSource, setActiveSource] = useState(DEFAULT_MARKER_SOURCE_KEY);
+
+  // Data layers radio panel (same in both single + split views)
+  const dataLayersPanel = (
+    <div className="space-y-3">
+      <div className="ss-divider"></div>
+      <div>
+        <div className="ss-title mb-3">Data Layers</div>
+        <div className="space-y-2">
+          {/* None */}
+          <label className="ss-data-toggle">
+            <input
+              type="radio"
+              className="ss-checkbox"
+              name="dataSource"
+              value=""
+              checked={activeSource === null}
+              onChange={() => setActiveSource(null)}
+            />
+            <div className="flex-1">
+              <div className="text-sm font-medium text-ui-fg">None</div>
+            </div>
+          </label>
+
+          {/* One entry per source */}
+          {Object.entries(MARKER_SOURCES).map(([key, src]) => (
+            <label key={key} className="ss-data-toggle">
+              <input
+                type="radio"
+                className="ss-checkbox"
+                name="dataSource"
+                value={key}
+                checked={activeSource === key}
+                onChange={() => setActiveSource(key)}
+              />
+              <div className="flex-1">
+                <div className="text-sm font-medium text-ui-fg">{src.label}</div>
+                {src.description && (
+                  <div className="text-xs text-ui-sub">{src.description}</div>
+                )}
+              </div>
+            </label>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   // Footer controls
   const footerControls = (
@@ -186,8 +236,7 @@ export default function MapView() {
             locateMarker={locatePoint}
             onToggleMode={() => setSplit((s) => !s)}
             onViewChange={onViewChange}
-            /* NEW: pass marker visibility */
-            canmoreVisible={canmoreVisible}
+            activeSource={activeSource}
           />
         ) : (
           <SingleViewMap
@@ -201,8 +250,7 @@ export default function MapView() {
             locateMarker={locatePoint}
             onToggleMode={() => setSplit((s) => !s)}
             onViewChange={onViewChange}
-            /* NEW: pass marker visibility */
-            canmoreVisible={canmoreVisible}
+            activeSource={activeSource}
           />
         )}
 
@@ -213,7 +261,6 @@ export default function MapView() {
           header={<SearchBar />}
           footer={footerControls}
         >
-          {/* Single view: Bottom/Top selectors + Opacity */}
           {!split ? (
             <>
               <LayerSelectorsPanel
@@ -229,36 +276,11 @@ export default function MapView() {
                   onChange: (id) => setTopLayer(ensureValid(id, defaults.top)),
                 }}
               />
-
               <LayerOpacityPanel value={opacity} onChange={setOpacity} />
-
-              {/* NEW: Data layers block (below existing single-view content) */}
-              <div className="space-y-3">
-                <div className="ss-divider"></div>
-                <div>
-                  <div className="ss-title mb-3">Data Layers</div>
-                  <label className="ss-data-toggle">
-                    <input
-                      type="checkbox"
-                      className="ss-checkbox"
-                      checked={canmoreVisible}
-                      onChange={() => setCanmoreVisible((v) => !v)}
-                    />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-ui-fg">
-                        Canmore Sites
-                      </div>
-                      <div className="text-xs text-ui-sub">
-                        Historic Scotland terrestrial archaeology
-                      </div>
-                    </div>
-                  </label>
-                </div>
-              </div>
+              {dataLayersPanel}
             </>
           ) : (
             <>
-              {/* Split view: Left/Right selectors (no opacity control here) */}
               <LayerSelectorsPanel
                 a={{
                   label: "Left layer",
@@ -273,30 +295,7 @@ export default function MapView() {
                     setRightLayer(ensureValid(id, defaults.right)),
                 }}
               />
-
-              {/* NEW: Data layers block (below existing split-view content) */}
-              <div className="space-y-3">
-                <div className="ss-divider"></div>
-                <div>
-                  <div className="ss-title mb-3">Data Layers</div>
-                  <label className="ss-data-toggle">
-                    <input
-                      type="checkbox"
-                      className="ss-checkbox"
-                      checked={canmoreVisible}
-                      onChange={() => setCanmoreVisible((v) => !v)}
-                    />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-ui-fg">
-                        Canmore Sites
-                      </div>
-                      <div className="text-xs text-ui-sub">
-                        Historic Scotland terrestrial archaeology
-                      </div>
-                    </div>
-                  </label>
-                </div>
-              </div>
+              {dataLayersPanel}
             </>
           )}
         </SidePopout>
