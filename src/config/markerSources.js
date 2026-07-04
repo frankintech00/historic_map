@@ -5,6 +5,7 @@ export const MARKER_SOURCES = {
   canmoreTerrestrial: {
     label: "Canmore Sites",
     description: "Historic Scotland terrestrial archaeology",
+    color: "#b06424",
     type: "arcgis-feature",
     serviceUrl:
       "https://inspire.hes.scot/arcgis/rest/services/CANMORE/Canmore_Points/MapServer",
@@ -29,6 +30,7 @@ export const MARKER_SOURCES = {
   hesListedBuildings: {
     label: "Listed Buildings",
     description: "Category A, B & C listed buildings (Scotland)",
+    color: "#1d4ed8",
     type: "arcgis-feature",
     serviceUrl:
       "https://inspire.hes.scot/arcgis/rest/services/HES/Listed_Buildings/MapServer",
@@ -50,6 +52,7 @@ export const MARKER_SOURCES = {
   hesScheduledMonuments: {
     label: "Scheduled Monuments",
     description: "Nationally important archaeological sites & monuments",
+    color: "#b91c1c",
     type: "arcgis-feature",
     serviceUrl:
       "https://inspire.hes.scot/arcgis/rest/services/HES/Scheduled_Monuments/MapServer",
@@ -72,6 +75,7 @@ export const MARKER_SOURCES = {
   hesGardens: {
     label: "Gardens & Designed Landscapes",
     description: "Inventory of Gardens and Designed Landscapes",
+    color: "#15803d",
     type: "arcgis-feature",
     serviceUrl:
       "https://inspire.hes.scot/arcgis/rest/services/HES/Gardens_and_Designed_Landscapes/MapServer",
@@ -93,6 +97,7 @@ export const MARKER_SOURCES = {
   hesBattlefields: {
     label: "Historic Battlefields",
     description: "Inventory of Historic Battlefields in Scotland",
+    color: "#7c3aed",
     type: "arcgis-feature",
     serviceUrl:
       "https://inspire.hes.scot/arcgis/rest/services/HES/Battlefields_Inventory_Boundary/MapServer",
@@ -114,6 +119,7 @@ export const MARKER_SOURCES = {
   hesWorldHeritage: {
     label: "World Heritage Sites",
     description: "UNESCO World Heritage Sites in Scotland",
+    color: "#0e7490",
     type: "arcgis-feature",
     serviceUrl:
       "https://inspire.hes.scot/arcgis/rest/services/HES/World_Heritage_Sites/MapServer",
@@ -135,6 +141,7 @@ export const MARKER_SOURCES = {
   hesPropertiesInCare: {
     label: "Properties in Care",
     description: "HES managed historic properties open to the public",
+    color: "#be185d",
     type: "arcgis-feature",
     serviceUrl:
       "https://inspire.hes.scot/arcgis/rest/services/HES/Properties_in_care_points/MapServer",
@@ -155,6 +162,7 @@ export const MARKER_SOURCES = {
   scottishRadiocarbon: {
     label: "Scottish Radiocarbon Index",
     description: "Radiocarbon-dated archaeological sites and samples",
+    color: "#4d7c0f",
     type: "arcgis-feature",
     serviceUrl:
       "https://inspire.hes.scot/arcgis/rest/services/CANMORE/Scottish_Radiocarbon_Index/MapServer",

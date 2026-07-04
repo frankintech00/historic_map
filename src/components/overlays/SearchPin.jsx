@@ -1,51 +1,41 @@
 import React from "react";
-import { Marker, Popup, Circle, useMap } from "react-leaflet";
+import { Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 
 /**
  * SearchPin
- * - Red pin marker with circle ring to show search result location
- * - Always visible (doesn't hide at low zoom like LocatePin)
+ * Red teardrop pin with an animated pulse ring — marks a search result.
  *
  * Props:
  * - point: { lat: number, lng: number, label?: string }
  */
 const icon = new L.DivIcon({
-  className: "search-pin",
-  html: `<div style="
-    width:20px;height:20px;border-radius:9999px;background:#dc2626;
-    border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,.3);
-  "></div>`,
-  iconSize: [20, 20],
-  iconAnchor: [10, 10],
+  className: "hm-search-pin",
+  html: `
+    <div style="position:relative;width:32px;height:40px;">
+      <div class="hm-search-pulse" style="
+        position:absolute;left:50%;bottom:0;width:28px;height:28px;
+        margin-left:-14px;margin-bottom:-14px;border-radius:9999px;
+        background:rgba(220,38,38,.35);
+      "></div>
+      <svg width="32" height="40" viewBox="0 0 26 34" xmlns="http://www.w3.org/2000/svg"
+           style="position:absolute;inset:0;filter:drop-shadow(0 2px 3px rgba(28,25,23,.4));">
+        <path d="M13 1C6.4 1 1 6.3 1 12.8 1 21.5 13 33 13 33s12-11.5 12-20.2C25 6.3 19.6 1 13 1Z"
+              fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
+        <circle cx="13" cy="12.8" r="4.2" fill="#ffffff"/>
+      </svg>
+    </div>`,
+  iconSize: [32, 40],
+  iconAnchor: [16, 40],
+  popupAnchor: [0, -36],
 });
 
 export default function SearchPin({ point }) {
-  const map = useMap();
   if (!point) return null;
 
-  const zoom = map.getZoom();
-  // Calculate radius based on zoom level (smaller at higher zoom)
-  const radius = Math.max(50, 800 / Math.pow(2, zoom - 10));
-
   return (
-    <>
-      {/* Outer circle ring */}
-      <Circle
-        center={[point.lat, point.lng]}
-        radius={radius}
-        pathOptions={{
-          color: "#dc2626",
-          fillColor: "#dc2626",
-          fillOpacity: 0.1,
-          weight: 2,
-          opacity: 0.6,
-        }}
-      />
-      {/* Red pin marker */}
-      <Marker position={[point.lat, point.lng]} icon={icon}>
-        {point.label && <Popup>{point.label}</Popup>}
-      </Marker>
-    </>
+    <Marker position={[point.lat, point.lng]} icon={icon}>
+      {point.label && <Popup>{point.label}</Popup>}
+    </Marker>
   );
 }

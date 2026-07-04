@@ -13,19 +13,9 @@ import MarkerLayer from "../overlays/MarkerLayer.jsx";
 /**
  * SingleViewMap
  * -------------
- * Controlled Leaflet map for the single-view mode.
- *
- * Props:
- *  - center: [lat, lng]
- *  - zoom: number
- *  - style: object
- *  - bottomLayerId: string
- *  - topLayerId: string
- *  - opacity: number
- *  - searchMarker: { lat, lng, label? } | null
- *  - locateMarker: { lat, lng, label? } | null
- *  - onViewChange: (centerArray, zoomNumber) => void
- *  - activeSource: string | null         // active data layer key, or null for none
+ * Leaflet map for the single-view mode: base layer + transparent overlay.
+ * The map owns its view after mount; state flows up via onViewChange and
+ * the live map instance is exposed via onMapReady.
  */
 
 function ViewSync({ onViewChange }) {
@@ -38,20 +28,11 @@ function ViewSync({ onViewChange }) {
   return null;
 }
 
-function RecenterController({ center, zoom, locateMarker }) {
+function CaptureMap({ onMapReady }) {
   const map = useMap();
-
   useEffect(() => {
-    map.setView(center, zoom, { animate: false });
-  }, [map, center[0], center[1], zoom]);
-
-  useEffect(() => {
-    if (!locateMarker) return;
-    const target = [locateMarker.lat, locateMarker.lng];
-    const nextZoom = Math.max(map.getZoom() ?? 0, 14);
-    map.flyTo(target, nextZoom, { duration: 0.6 });
-  }, [map, locateMarker?.lat, locateMarker?.lng]);
-
+    onMapReady?.(map);
+  }, [map, onMapReady]);
   return null;
 }
 
@@ -65,6 +46,7 @@ export default function SingleViewMap({
   searchMarker,
   locateMarker,
   onViewChange,
+  onMapReady,
   activeSource,
 }) {
   const { bottomLayer, topLayer } = useMemo(() => {
@@ -79,7 +61,7 @@ export default function SingleViewMap({
     <MapContainer
       center={center}
       zoom={zoom}
-      className="w-full h-full"
+      className="h-full w-full"
       style={style}
       zoomControl={false}
       attributionControl={true}
@@ -102,11 +84,7 @@ export default function SingleViewMap({
 
       {/* Controllers */}
       <ViewSync onViewChange={onViewChange} />
-      <RecenterController
-        center={center}
-        zoom={zoom}
-        locateMarker={locateMarker}
-      />
+      <CaptureMap onMapReady={onMapReady} />
     </MapContainer>
   );
 }

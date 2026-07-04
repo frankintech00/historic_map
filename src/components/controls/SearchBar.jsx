@@ -1,34 +1,39 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Search, X, Loader2, MapPin } from "lucide-react";
 import { dispatchSearchGoto } from "../../state/SearchBus";
 
 /**
  * SearchBar
- * - Debounced Nominatim search (GB only)
- * - Closes dropdown after selecting a result
- * - Closes on outside click or Escape
+ * - Debounced MapTiler geocoding (GB only)
+ * - Direct "lat, lng" coordinate entry
+ * - Full keyboard navigation (arrows / Enter / Escape)
  */
 export default function SearchBar() {
   const [q, setQ] = useState("");
   const [results, setResults] = useState([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const boxRef = useRef(null);
   const inputRef = useRef(null);
+  const listRef = useRef(null);
 
-  // Debounced search (Nominatim, constrained to UK)
+  // Debounced geocoding search
   useEffect(() => {
     const query = q.trim();
-    if (!query) {
+    if (query.length < 2) {
       setResults([]);
       setOpen(false);
       setLoading(false);
       return;
     }
 
-    // Skip very short queries (less than 2 chars) to avoid too many results
-    if (query.length < 2) {
-      setResults([]);
-      setOpen(false);
+    // Direct coordinate entry short-circuits the API
+    const coord = parseCoordinates(query);
+    if (coord) {
+      setResults([coord]);
+      setActiveIndex(0);
+      setOpen(true);
       setLoading(false);
       return;
     }
@@ -38,65 +43,50 @@ export default function SearchBar() {
     const t = setTimeout(async () => {
       try {
         const apiKey = import.meta.env.VITE_MAPTILER_KEY;
-        if (!apiKey) {
-          console.error("[SearchBar] Missing VITE_MAPTILER_KEY");
-          throw new Error("MapTiler API key not configured");
-        }
+        if (!apiKey) throw new Error("MapTiler API key not configured");
 
-        // MapTiler Geocoding API - better CORS support, reliable, and you already have a key!
         const params = new URLSearchParams({
           key: apiKey,
-          q: query,
-          limit: "10",
+          limit: "8",
           language: "en",
-          country: "gb", // Limit to UK
+          country: "gb",
           fuzzyMatch: "true",
           autocomplete: "true",
         });
-
-        const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?${params.toString()}`;
-        console.log("[SearchBar] Searching:", query);
+        const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(
+          query
+        )}.json?${params.toString()}`;
 
         const res = await fetch(url, { signal: controller.signal });
-
-        if (!res.ok) {
-          console.error("[SearchBar] HTTP error:", res.status, res.statusText);
-          throw new Error(`Search failed: ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`Search failed: ${res.status}`);
 
         const data = await res.json();
-        const features = data.features || [];
-        console.log("[SearchBar] Results:", features.length, "items");
-
-        const mapped = features.map((f) => {
+        const mapped = (data.features || []).map((f) => {
           const [lng, lat] = f.geometry.coordinates;
-          const label = f.place_name || f.text || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-          const zoom = inferZoomFromBbox(f.bbox) || inferZoomFromPlaceType(f.place_type);
           return {
             lat,
             lng,
-            label,
-            zoom,
-            raw: { type: f.place_type?.[0], class: f.properties?.category },
+            label:
+              f.place_name || f.text || `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+            zoom:
+              inferZoomFromBbox(f.bbox) || inferZoomFromPlaceType(f.place_type),
+            type: getResultType(f.place_type?.[0] || f.properties?.category),
           };
         });
 
-        if (mapped.length === 0) {
-          console.log("[SearchBar] No results for:", query);
-        }
-
         setResults(mapped);
-        setOpen(true); // Always show dropdown when search completes (even if empty)
+        setActiveIndex(mapped.length ? 0 : -1);
+        setOpen(true);
         setLoading(false);
       } catch (err) {
         if (err.name !== "AbortError") {
-          console.error("[SearchBar] Search error:", err);
+          console.error("[SearchBar]", err);
           setResults([]);
           setOpen(false);
           setLoading(false);
         }
       }
-    }, 500); // Increased to 500ms to respect Nominatim rate limits (1 req/sec)
+    }, 400);
 
     return () => {
       controller.abort();
@@ -104,27 +94,22 @@ export default function SearchBar() {
     };
   }, [q]);
 
-  // Close on outside click and Escape
+  // Close on outside click
   useEffect(() => {
     function onDocClick(e) {
-      if (!boxRef.current) return;
-      if (!boxRef.current.contains(e.target)) {
-        setOpen(false);
-      }
-    }
-    function onKey(e) {
-      if (e.key === "Escape") {
-        setOpen(false);
-        inputRef.current?.blur();
-      }
+      if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false);
     }
     document.addEventListener("mousedown", onDocClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDocClick);
-      document.removeEventListener("keydown", onKey);
-    };
+    return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
+
+  // Keep the active option scrolled into view
+  useEffect(() => {
+    if (activeIndex < 0 || !listRef.current) return;
+    listRef.current
+      .querySelector(`[data-index="${activeIndex}"]`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex]);
 
   function goto(item) {
     dispatchSearchGoto({
@@ -133,52 +118,115 @@ export default function SearchBar() {
       label: item.label,
       zoom: item.zoom ?? 14,
     });
-    // Immediately close and tidy the dropdown
     setOpen(false);
     setResults([]);
     inputRef.current?.blur();
   }
 
+  function clear() {
+    setQ("");
+    setResults([]);
+    setOpen(false);
+    inputRef.current?.focus();
+  }
+
+  function onKeyDown(e) {
+    if (e.key === "Escape") {
+      setOpen(false);
+      inputRef.current?.blur();
+      return;
+    }
+    if (!open || results.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => (i + 1) % results.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => (i - 1 + results.length) % results.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const item = results[activeIndex] ?? results[0];
+      if (item) goto(item);
+    }
+  }
+
   return (
-    <div className="relative" ref={boxRef}>
-      <div className="relative">
+    <div className="relative min-w-0 w-full" ref={boxRef}>
+      <div className="hm-surface flex h-11 min-w-0 items-center gap-2 px-3">
+        <Search className="h-4 w-4 shrink-0 text-stone-400" aria-hidden />
         <input
           ref={inputRef}
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search UK places…"
-          className="ss-input w-full pr-10"
-          onFocus={() => {
-            if (results.length) setOpen(true);
-          }}
+          onFocus={() => results.length && setOpen(true)}
+          onKeyDown={onKeyDown}
+          placeholder="Search places, postcodes or coordinates…"
           aria-label="Search UK places"
+          role="combobox"
+          aria-expanded={open}
+          aria-autocomplete="list"
+          size={1}
+          className="h-full min-w-0 flex-1 bg-transparent text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none"
         />
         {loading && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <div className="w-4 h-4 border-2 border-ui-accent border-t-transparent rounded-full animate-spin"></div>
-          </div>
+          <Loader2
+            className="h-4 w-4 shrink-0 animate-spin text-bronze-600"
+            aria-hidden
+          />
+        )}
+        {q && !loading && (
+          <button
+            type="button"
+            onClick={clear}
+            aria-label="Clear search"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
         )}
       </div>
+
       {open && (
-        <div className="absolute left-0 right-0 mt-2 max-h-64 overflow-auto rounded-xl border border-neutral-200 bg-white shadow-lg z-10">
+        <div className="hm-surface absolute left-0 right-0 top-[calc(100%+6px)] overflow-hidden">
           {results.length > 0 ? (
-            <ul className="py-1">
+            <ul
+              ref={listRef}
+              role="listbox"
+              className="hm-scroll max-h-72 overflow-y-auto py-1"
+            >
               {results.map((r, idx) => (
-                <li key={`${r.lat}-${r.lng}-${idx}`}>
+                <li key={`${r.lat}-${r.lng}-${idx}`} role="option" aria-selected={idx === activeIndex}>
                   <button
                     type="button"
-                    className="ss-result-item"
+                    data-index={idx}
                     onClick={() => goto(r)}
+                    onMouseEnter={() => setActiveIndex(idx)}
+                    className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors ${
+                      idx === activeIndex ? "bg-bronze-50" : ""
+                    }`}
                   >
-                    <div className="ss-result-label">{r.label}</div>
-                    <div className="ss-result-type">{getResultType(r.raw)}</div>
+                    <MapPin
+                      className={`h-4 w-4 shrink-0 ${
+                        idx === activeIndex
+                          ? "text-bronze-600"
+                          : "text-stone-300"
+                      }`}
+                      aria-hidden
+                    />
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-800">
+                      {r.label}
+                    </span>
+                    <span className="shrink-0 rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-medium text-stone-500">
+                      {r.type}
+                    </span>
                   </button>
                 </li>
               ))}
             </ul>
           ) : (
             !loading && (
-              <div className="px-4 py-3 text-sm text-ui-sub text-center">
+              <div className="px-4 py-4 text-center text-sm text-stone-500">
                 No results found
               </div>
             )
@@ -189,14 +237,28 @@ export default function SearchBar() {
   );
 }
 
+/** Recognise "lat, lng" input and return a synthetic result. */
+function parseCoordinates(query) {
+  const m = query.match(/^(-?\d{1,2}(?:\.\d+)?)[,\s]+(-?\d{1,3}(?:\.\d+)?)$/);
+  if (!m) return null;
+  const lat = parseFloat(m[1]);
+  const lng = parseFloat(m[2]);
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  return {
+    lat,
+    lng,
+    label: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+    zoom: 15,
+    type: "Coordinates",
+  };
+}
+
 /** Get a friendly label for the result type */
-function getResultType(raw) {
-  const t = raw?.type || raw?.class || "";
+function getResultType(t) {
   const typeLabels = {
-    // Administrative (MapTiler place_type)
     country: "Country",
     region: "Region",
-    state: "State/Region",
+    state: "Region",
     county: "County",
     district: "District",
     municipality: "City",
@@ -208,11 +270,7 @@ function getResultType(raw) {
     neighbourhood: "Neighbourhood",
     locality: "Locality",
     quarter: "Quarter",
-
-    // Places
     island: "Island",
-
-    // Addresses & Streets
     postcode: "Postcode",
     street: "Street",
     address: "Address",
@@ -221,13 +279,11 @@ function getResultType(raw) {
     footway: "Footpath",
     house: "Address",
     building: "Building",
-
-    // Points of Interest
-    poi: "Point of Interest",
-    tourism: "Tourist Attraction",
+    poi: "Place",
+    tourism: "Attraction",
     historic: "Historic Site",
     amenity: "Amenity",
-    railway: "Railway Station",
+    railway: "Station",
     aeroway: "Airport",
     natural: "Natural Feature",
     waterway: "Waterway",
@@ -240,25 +296,19 @@ function getResultType(raw) {
 function inferZoomFromBbox(bbox) {
   if (!bbox || bbox.length !== 4) return null;
   const [west, south, east, north] = bbox;
-  const width = east - west;
-  const height = north - south;
-  const maxDim = Math.max(width, height);
-
-  // Approximate zoom levels based on bbox size
-  if (maxDim > 10) return 6; // Country/region
-  if (maxDim > 2) return 9; // County
-  if (maxDim > 0.5) return 11; // City
-  if (maxDim > 0.1) return 13; // Town/suburb
-  if (maxDim > 0.01) return 15; // Village/street
-  return 17; // Address/building
+  const maxDim = Math.max(east - west, north - south);
+  if (maxDim > 10) return 6;
+  if (maxDim > 2) return 9;
+  if (maxDim > 0.5) return 11;
+  if (maxDim > 0.1) return 13;
+  if (maxDim > 0.01) return 15;
+  return 17;
 }
 
 /** Infer zoom from MapTiler place type */
 function inferZoomFromPlaceType(placeTypes) {
   if (!placeTypes || !placeTypes.length) return 14;
-  const t = placeTypes[0]; // Primary type
-
-  switch (t) {
+  switch (placeTypes[0]) {
     case "country":
       return 6;
     case "region":

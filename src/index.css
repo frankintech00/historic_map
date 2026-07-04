@@ -1,17 +1,328 @@
-@import "./styles/leaflet-fixes.css";
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* App defaults */
-html,
-body,
-#root {
-  height: 100%;
-}
-body {
-  @apply bg-slate-100 text-slate-900;
+/* ================================================================
+   Base
+   ================================================================ */
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-stone-200 font-sans text-stone-900 antialiased;
+    overscroll-behavior: none;
+  }
 }
 
-/* (Leaflet later) */
+/* ================================================================
+   App components (hm- prefix = Historic Maps)
+   ================================================================ */
+@layer components {
+  /* Floating glass surface used by all chrome */
+  .hm-surface {
+    @apply rounded-xl border border-stone-900/10 bg-white/90 shadow-panel backdrop-blur-md;
+  }
+
+  /* Small uppercase section label */
+  .hm-label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.09em] text-stone-500;
+  }
+
+  /* Icon button (control dock, top bar) */
+  .hm-icon-btn {
+    @apply flex h-10 w-10 items-center justify-center text-stone-700 transition-colors duration-150
+           hover:bg-stone-900/5 hover:text-stone-900
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-bronze-500
+           disabled:pointer-events-none disabled:opacity-35;
+  }
+
+  /* Segmented control */
+  .hm-seg {
+    @apply flex items-center gap-0.5 rounded-lg bg-stone-900/5 p-0.5;
+  }
+  .hm-seg-btn {
+    @apply flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[13px] font-medium text-stone-500 transition-all duration-150
+           hover:text-stone-800
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bronze-500;
+  }
+  .hm-seg-btn[aria-pressed="true"] {
+    @apply bg-white text-stone-900 shadow-sm;
+  }
+
+  /* Select with custom chevron */
+  .hm-select {
+    @apply w-full cursor-pointer appearance-none rounded-lg border border-stone-300 bg-white py-2 pl-3 pr-9 text-sm text-stone-900 transition-colors
+           hover:border-stone-400
+           focus:border-bronze-500 focus:outline-none focus:ring-1 focus:ring-bronze-500;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2378716c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 0.65rem center;
+    background-repeat: no-repeat;
+  }
+
+  /* Radio row for data layers */
+  .hm-radio-row {
+    @apply flex w-full cursor-pointer items-start gap-3 rounded-lg border border-transparent px-2.5 py-2 text-left transition-colors duration-150
+           hover:bg-stone-900/[0.04];
+  }
+  .hm-radio-row[data-checked="true"] {
+    @apply border-bronze-200 bg-bronze-50;
+  }
+
+  /* Colour swatch dot for data layers */
+  .hm-dot {
+    @apply mt-1 h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white;
+  }
+}
+
+/* ================================================================
+   Range slider (opacity)
+   ================================================================ */
+.hm-range {
+  @apply h-1.5 w-full cursor-pointer appearance-none rounded-full;
+  background: linear-gradient(
+    to right,
+    #b06424 0%,
+    #b06424 var(--hm-range-fill, 50%),
+    #e7e5e4 var(--hm-range-fill, 50%),
+    #e7e5e4 100%
+  );
+}
+.hm-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 18px;
+  width: 18px;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 2px solid #b06424;
+  box-shadow: 0 1px 4px rgba(28, 25, 23, 0.3);
+  cursor: pointer;
+  transition: transform 120ms ease;
+}
+.hm-range::-webkit-slider-thumb:hover {
+  transform: scale(1.12);
+}
+.hm-range::-moz-range-thumb {
+  height: 18px;
+  width: 18px;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 2px solid #b06424;
+  box-shadow: 0 1px 4px rgba(28, 25, 23, 0.3);
+  cursor: pointer;
+  transition: transform 120ms ease;
+}
+.hm-range:focus-visible {
+  outline: 2px solid #b06424;
+  outline-offset: 3px;
+}
+
+/* ================================================================
+   Leaflet: general fixes & theming
+   ================================================================ */
+
+/* Stop Tailwind's reset from stretching Leaflet marker images */
+.leaflet-container img.leaflet-marker-icon,
+.leaflet-container img.leaflet-marker-shadow {
+  max-width: none !important;
+  height: auto;
+}
+.leaflet-control img {
+  max-width: none;
+  height: auto;
+}
+
+.leaflet-container {
+  font-family: inherit;
+  background: #e7e5e4; /* stone-200 while tiles load */
+}
+
+/* Attribution: quiet, translucent */
+.leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(4px);
+  color: #78716c;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 8px 0 0 0;
+}
+.leaflet-control-attribution a {
+  color: #57534e;
+}
+
+/* ================================================================
+   Leaflet: popups
+   ================================================================ */
+.leaflet-popup-content-wrapper {
+  border-radius: 14px;
+  box-shadow: 0 2px 6px rgba(28, 25, 23, 0.12), 0 12px 32px rgba(28, 25, 23, 0.22);
+  border: 1px solid rgba(28, 25, 23, 0.08);
+}
+.leaflet-popup-content {
+  margin: 14px 16px;
+  font-family: inherit;
+  line-height: 1.45;
+}
+.leaflet-popup-tip {
+  box-shadow: 0 2px 6px rgba(28, 25, 23, 0.15);
+}
+.leaflet-popup-close-button {
+  top: 8px !important;
+  right: 8px !important;
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 9999px;
+  color: #a8a29e !important;
+  font-size: 16px !important;
+  line-height: 20px !important;
+}
+.leaflet-popup-close-button:hover {
+  background: #f5f5f4 !important;
+  color: #44403c !important;
+}
+
+/* Popup content typography */
+.hm-popup-title {
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1c1917;
+  padding-right: 14px;
+}
+.hm-popup-subtitle {
+  font-size: 13px;
+  color: #44403c;
+}
+.hm-popup-chip {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: #f8ecd9;
+  color: #8f4d20;
+  font-size: 11px;
+  font-weight: 600;
+}
+.hm-popup-meta {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #78716c;
+}
+.hm-popup-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e7e5e4;
+  width: 100%;
+  font-size: 13px;
+  font-weight: 600;
+  color: #b06424 !important;
+  text-decoration: none !important;
+}
+.hm-popup-link:hover {
+  color: #8f4d20 !important;
+  text-decoration: underline !important;
+}
+
+/* ================================================================
+   Markers: pins & clusters
+   ================================================================ */
+.hm-pin {
+  background: none;
+  border: none;
+}
+.hm-pin svg {
+  filter: drop-shadow(0 2px 3px rgba(28, 25, 23, 0.4));
+}
+
+.hm-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: var(--hm-cluster-color, #b06424);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 12px;
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--hm-cluster-color, #b06424) 25%, transparent),
+    0 2px 8px rgba(28, 25, 23, 0.35);
+  transition: transform 120ms ease;
+}
+.hm-cluster:hover {
+  transform: scale(1.08);
+}
+
+/* Search-result pulse ring */
+@keyframes hm-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  70% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+.hm-search-pin .hm-search-pulse {
+  animation: hm-pulse 1.8s ease-out infinite;
+}
+
+/* ================================================================
+   Leaflet: side-by-side divider polish
+   ================================================================ */
+.leaflet-sbs-divider {
+  background: #ffffff;
+  width: 3px;
+  margin-left: -1.5px;
+  box-shadow: 0 0 6px rgba(28, 25, 23, 0.45);
+}
+.leaflet-sbs-range {
+  --track: transparent;
+}
+.leaflet-sbs-range::-webkit-slider-thumb {
+  background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2344403c' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6-6 6 6 6'/%3E%3Cpath d='m15 6 6 6-6 6'/%3E%3C/svg%3E")
+    no-repeat center;
+  border: 1px solid rgba(28, 25, 23, 0.15);
+  box-shadow: 0 2px 8px rgba(28, 25, 23, 0.35);
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  cursor: ew-resize;
+}
+.leaflet-sbs-range::-moz-range-thumb {
+  background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2344403c' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6-6 6 6 6'/%3E%3Cpath d='m15 6 6 6-6 6'/%3E%3C/svg%3E")
+    no-repeat center;
+  border: 1px solid rgba(28, 25, 23, 0.15);
+  box-shadow: 0 2px 8px rgba(28, 25, 23, 0.35);
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  cursor: ew-resize;
+}
+
+/* ================================================================
+   Scrollbars inside panels
+   ================================================================ */
+.hm-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #d6d3d1 transparent;
+}
+.hm-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.hm-scroll::-webkit-scrollbar-thumb {
+  background: #d6d3d1;
+  border-radius: 9999px;
+}
+.hm-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}

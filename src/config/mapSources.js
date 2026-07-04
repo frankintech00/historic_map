@@ -3,6 +3,7 @@
  * Centralised raster tile sources for React + Leaflet, with controlled overzoom.
  *
  * IDs are STABLE. Secrets via VITE_MAPTILER_KEY in .env.local.
+ * Each layer declares a `category` ("modern" | "historic") used by the UI.
  *
  * Note:
  * - Most layers keep maxNativeZoom + maxZoom for tasteful overzoom.
@@ -31,6 +32,7 @@ export const BASE_LAYERS = [
   {
     id: "osm",
     name: "OpenStreetMap",
+    category: "modern",
     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     attribution: ATTR_OSM,
     subdomains: ["a", "b", "c"],
@@ -42,6 +44,7 @@ export const BASE_LAYERS = [
   {
     id: "carto-light",
     name: "CartoDB Light",
+    category: "modern",
     url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
     attribution: ATTR_CARTO,
     subdomains: ["a", "b", "c", "d"],
@@ -53,6 +56,7 @@ export const BASE_LAYERS = [
   {
     id: "carto-dark",
     name: "CartoDB Dark",
+    category: "modern",
     url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
     attribution: ATTR_CARTO,
     subdomains: ["a", "b", "c", "d"],
@@ -64,6 +68,7 @@ export const BASE_LAYERS = [
   {
     id: "carto-voyager",
     name: "CartoDB Voyager",
+    category: "modern",
     url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
     attribution: ATTR_CARTO,
     subdomains: ["a", "b", "c", "d"],
@@ -77,6 +82,7 @@ export const BASE_LAYERS = [
   {
     id: "satellite",
     name: "MapTiler Satellite",
+    category: "modern",
     url: mtTiles("satellite-v2/{z}/{x}/{y}.jpg"),
     attribution: `${ATTR_MAPTILER}`,
     minZoom: 1,
@@ -87,6 +93,7 @@ export const BASE_LAYERS = [
   {
     id: "mt-hybrid",
     name: "MapTiler Hybrid",
+    category: "modern",
     url: mtMaps("hybrid", "jpg"),
     attribution: `${ATTR_MAPTILER} | ${ATTR_OSM}`,
     minZoom: 1,
@@ -97,6 +104,7 @@ export const BASE_LAYERS = [
   {
     id: "esri-satellite",
     name: "ESRI Satellite",
+    category: "modern",
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     attribution:
       "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
@@ -108,6 +116,7 @@ export const BASE_LAYERS = [
   {
     id: "topo",
     name: "OpenTopoMap",
+    category: "modern",
     url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
     attribution:
       'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
@@ -122,6 +131,7 @@ export const BASE_LAYERS = [
   {
     id: "mt-outdoor",
     name: "MapTiler Outdoor",
+    category: "modern",
     url: mtMaps("outdoor-v2"),
     attribution: `${ATTR_MAPTILER} | ${ATTR_OSM}`,
     minZoom: 1,
@@ -132,6 +142,7 @@ export const BASE_LAYERS = [
   {
     id: "mt-streets",
     name: "MapTiler Streets",
+    category: "modern",
     url: mtMaps("streets-v2"),
     attribution: `${ATTR_MAPTILER} | ${ATTR_OSM}`,
     minZoom: 1,
@@ -142,6 +153,7 @@ export const BASE_LAYERS = [
   {
     id: "mt-topo",
     name: "MapTiler Topo",
+    category: "modern",
     url: mtMaps("topo-v2"),
     attribution: `${ATTR_MAPTILER} | ${ATTR_OSM}`,
     minZoom: 1,
@@ -152,6 +164,7 @@ export const BASE_LAYERS = [
   {
     id: "mt-winter",
     name: "MapTiler Winter",
+    category: "modern",
     url: mtMaps("winter-v2"),
     attribution: `${ATTR_MAPTILER} | ${ATTR_OSM}`,
     minZoom: 1,
@@ -162,6 +175,7 @@ export const BASE_LAYERS = [
   {
     id: "mt-bright",
     name: "MapTiler Bright",
+    category: "modern",
     url: mtMaps("bright-v2"),
     attribution: `${ATTR_MAPTILER} | ${ATTR_OSM}`,
     minZoom: 1,
@@ -172,6 +186,7 @@ export const BASE_LAYERS = [
   {
     id: "mt-dataviz",
     name: "MapTiler Dataviz",
+    category: "modern",
     url: mtMaps("dataviz"),
     attribution: `${ATTR_MAPTILER} | ${ATTR_OSM}`,
     minZoom: 1,
@@ -184,6 +199,7 @@ export const BASE_LAYERS = [
   {
     id: "nls-roy-highlands",
     name: "Roy Military Survey 1747–55 (Highlands)",
+    category: "historic",
     url: "https://mapseries-tilesets.s3.amazonaws.com/roy/highlands/{z}/{x}/{y}.png",
     attribution: ATTR_NLS,
     minZoom: 1,
@@ -194,6 +210,7 @@ export const BASE_LAYERS = [
   {
     id: "nls-roy-lowlands",
     name: "Roy Military Survey 1747–55 (Lowlands)",
+    category: "historic",
     url: "https://mapseries-tilesets.s3.amazonaws.com/roy/lowlands/{z}/{x}/{y}.png",
     attribution: ATTR_NLS,
     minZoom: 1,
@@ -206,6 +223,7 @@ export const BASE_LAYERS = [
   {
     id: "nls-mt-uk-osgb1888",
     name: "OS Multi Scale 1888",
+    category: "historic",
     url: mtTiles("uk-osgb1888/{z}/{x}/{y}.png"),
     tileSize: 512,
     zoomOffset: -1,
@@ -217,6 +235,7 @@ export const BASE_LAYERS = [
   {
     id: "nls-os-sixinch-1888",
     name: "OS Six‑Inch 1888–1913",
+    category: "historic",
     url: mtTiles("uk-osgb10k1888/{z}/{x}/{y}.png"),
     tileSize: 512,
     zoomOffset: -1,
@@ -229,6 +248,7 @@ export const BASE_LAYERS = [
   {
     id: "nls-os-oneinch-hills-1885",
     name: "OS One‑Inch 'Hills' 1885–1903",
+    category: "historic",
     url: mtTiles("uk-osgb63k1885/{z}/{x}/{y}.png"),
     tileSize: 512,
     zoomOffset: -1,
@@ -241,6 +261,7 @@ export const BASE_LAYERS = [
   {
     id: "nls-os-provisional-25k-1937",
     name: "OS 1:25k 1937–1961",
+    category: "historic",
     url: mtTiles("uk-osgb25k1937/{z}/{x}/{y}.png"),
     tileSize: 512,
     zoomOffset: -1,
@@ -253,6 +274,7 @@ export const BASE_LAYERS = [
   {
     id: "nls-os-oneinch-seventh-1955",
     name: "OS One‑Inch 1955–1961",
+    category: "historic",
     url: mtTiles("uk-osgb63k1955/{z}/{x}/{y}.png"),
     tileSize: 512,
     zoomOffset: -1,
@@ -265,6 +287,7 @@ export const BASE_LAYERS = [
   {
     id: "nls-os-historical-1919-1947",
     name: "OS Historical 1919–1947",
+    category: "historic",
     url: mtTiles("uk-osgb1919/{z}/{x}/{y}.png"),
     tileSize: 512,
     zoomOffset: -1,
@@ -275,5 +298,16 @@ export const BASE_LAYERS = [
     crossOrigin: true,
   },
 ];
+
+/** Layers grouped for UI selectors. */
+export function groupedBaseLayers() {
+  const modern = BASE_LAYERS.filter((l) => l.category !== "historic");
+  const historic = BASE_LAYERS.filter((l) => l.category === "historic");
+  return { modern, historic };
+}
+
+export function getLayerById(id) {
+  return BASE_LAYERS.find((l) => l.id === id) || null;
+}
 
 export default BASE_LAYERS;

@@ -30,3 +30,6 @@ dist-ssr
 # docker files
 dockerfile
 docker-compose.yml
+
+# Claude Code local settings
+.claude/

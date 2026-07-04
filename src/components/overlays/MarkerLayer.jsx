@@ -26,11 +26,41 @@ import {
  *  - zoomToBoundsOnClick: true (quickly drills into dense areas)
  */
 
-const DEV_DEBUG = true;
+const DEV_DEBUG = false;
 
 // Stronger clustering settings
 const CLUSTER_MAX_RADIUS = 80; // px
 const CLUSTER_DISABLE_AT_ZOOM = 18; // cluster until Z18; split at Z19+
+
+const DEFAULT_MARKER_COLOR = "#b06424";
+
+/** Teardrop pin coloured per data source. */
+function makePinIcon(color) {
+  return L.divIcon({
+    className: "hm-pin",
+    html: `<svg width="26" height="34" viewBox="0 0 26 34" xmlns="http://www.w3.org/2000/svg">
+      <path d="M13 1C6.4 1 1 6.3 1 12.8 1 21.5 13 33 13 33s12-11.5 12-20.2C25 6.3 19.6 1 13 1Z"
+            fill="${color}" stroke="#ffffff" stroke-width="2"/>
+      <circle cx="13" cy="12.8" r="4.2" fill="#ffffff"/>
+    </svg>`,
+    iconSize: [26, 34],
+    iconAnchor: [13, 32],
+    popupAnchor: [0, -30],
+  });
+}
+
+/** Cluster bubble coloured per data source, sized by count. */
+function makeClusterIcon(color) {
+  return (cluster) => {
+    const n = cluster.getChildCount();
+    const size = n < 10 ? 34 : n < 100 ? 40 : 48;
+    return L.divIcon({
+      html: `<div class="hm-cluster" style="--hm-cluster-color:${color};width:${size}px;height:${size}px">${n}</div>`,
+      className: "",
+      iconSize: [size, size],
+    });
+  };
+}
 
 export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
   const map = useMap();
@@ -85,23 +115,19 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
     return metaRef.current;
   }
 
-  function clearAllMarkers() {
-    if (clusterRef.current) {
-      clusterRef.current.clearLayers();
-    }
-  }
-
   function setClusterGeoJSON(geojson) {
     if (!clusterRef.current) return;
 
     // Reset cluster content
     clusterRef.current.clearLayers();
 
-    const fm = MARKER_SOURCES[sourceKey]?.fieldMap || {};
+    const src = MARKER_SOURCES[sourceKey] || {};
+    const fm = src.fieldMap || {};
+    const pinIcon = makePinIcon(src.color || DEFAULT_MARKER_COLOR);
 
     // Build a lightweight GeoJSON layer; popups are strings for speed.
     const gjLayer = L.geoJSON(geojson, {
-      pointToLayer: (feature, latlng) => L.marker(latlng),
+      pointToLayer: (feature, latlng) => L.marker(latlng, { icon: pinIcon }),
       onEachFeature: (feature, layer) => {
         const p = feature.properties || {};
         const nmrs = p[fm.title] ?? "Site";
@@ -112,42 +138,32 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
         const grid = p[fm.gridRef] ?? "";
         const href = p[fm.url];
 
+        const metaLine = [council, county, grid]
+          .filter(Boolean)
+          .map(escapeHtml)
+          .join(" · ");
+
         const html = `
-          <div class="space-y-1.5">
-            <div class="ss-popup-title">${escapeHtml(nmrs)}</div>
+          <div>
+            <div class="hm-popup-title">${escapeHtml(nmrs)}</div>
             ${
               alt
-                ? `<div class="ss-popup-subtitle">${escapeHtml(alt)}</div>`
+                ? `<div class="hm-popup-subtitle">${escapeHtml(alt)}</div>`
                 : ""
             }
             ${
               type
-                ? `<div class="ss-popup-meta">${escapeHtml(type)}</div>`
+                ? `<span class="hm-popup-chip">${escapeHtml(type)}</span>`
                 : ""
             }
-            ${
-              council
-                ? `<div class="ss-popup-meta">${escapeHtml(council)}</div>`
-                : ""
-            }
-            ${
-              county
-                ? `<div class="ss-popup-detail">${escapeHtml(county)}</div>`
-                : ""
-            }
-            ${
-              grid
-                ? `<div class="ss-popup-detail">${escapeHtml(grid)}</div>`
-                : ""
-            }
+            ${metaLine ? `<div class="hm-popup-meta">${metaLine}</div>` : ""}
             ${
               href
-                ? `<div class="ss-popup-divider"></div>
-                   <a href="${escapeAttr(href)}"
-                      class="ss-popup-link"
+                ? `<a href="${escapeAttr(href)}"
+                      class="hm-popup-link"
                       target="_blank"
                       rel="noopener">
-                     View Details →
+                     View full record →
                    </a>`
                 : ""
             }
@@ -248,6 +264,9 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
       spiderfyOnEveryZoom: false,
       showCoverageOnHover: false,
       chunkedLoading: true,
+      iconCreateFunction: makeClusterIcon(
+        MARKER_SOURCES[sourceKey]?.color || DEFAULT_MARKER_COLOR
+      ),
     });
     clusterRef.current = cluster;
     map.addLayer(cluster);

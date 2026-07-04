@@ -6,23 +6,13 @@ import "leaflet-side-by-side";
 import { BASE_LAYERS } from "../../config/mapSources.js";
 import SearchPin from "../overlays/SearchPin.jsx";
 import LocatePin from "../overlays/LocatePin.jsx";
-import MarkerLayer from "../overlays/MarkerLayer.jsx"; // NEW
+import MarkerLayer from "../overlays/MarkerLayer.jsx";
 
 /**
  * SideBySideView
+ * --------------
+ * Two tile layers with a draggable comparison divider.
  * React renders both TileLayers; the plugin only draws the divider.
- * Re-centres when external center/zoom change AND when a new locateMarker arrives.
- *
- * Props:
- *  - center: [lat, lng]
- *  - zoom: number
- *  - style: object
- *  - leftLayerId: string
- *  - rightLayerId: string
- *  - searchMarker: { lat, lng, label? } | null
- *  - locateMarker: { lat, lng, label? } | null
- *  - onViewChange: (centerArray, zoomNumber) => void
- *  - activeSource: string | null             // active data layer key, or null for none
  */
 
 function ViewSync({ onViewChange }) {
@@ -35,23 +25,11 @@ function ViewSync({ onViewChange }) {
   return null;
 }
 
-/** Keep map aligned to external center/zoom; fly when locateMarker changes */
-function RecenterController({ center, zoom, locateMarker }) {
+function CaptureMap({ onMapReady }) {
   const map = useMap();
-
-  // Sync to props (no animation to avoid tug-of-war)
   useEffect(() => {
-    map.setView(center, zoom, { animate: false });
-  }, [map, center[0], center[1], zoom]);
-
-  // Fly to new device location
-  useEffect(() => {
-    if (!locateMarker) return;
-    const target = [locateMarker.lat, locateMarker.lng];
-    const nextZoom = Math.max(map.getZoom() ?? 0, 14);
-    map.flyTo(target, nextZoom, { duration: 0.6 });
-  }, [map, locateMarker?.lat, locateMarker?.lng]);
-
+    onMapReady?.(map);
+  }, [map, onMapReady]);
   return null;
 }
 
@@ -69,7 +47,9 @@ function SideBySideControl({ leftLayerRef, rightLayerRef }) {
     return () => {
       try {
         controlRef.current?.remove();
-      } catch {}
+      } catch {
+        // control already detached during map teardown
+      }
       controlRef.current = null;
     };
   }, [map, leftLayerRef, rightLayerRef]);
@@ -86,6 +66,7 @@ export default function SideBySideView({
   searchMarker,
   locateMarker,
   onViewChange,
+  onMapReady,
   activeSource,
 }) {
   // Resolve layer objects from ids
@@ -108,7 +89,7 @@ export default function SideBySideView({
       style={style}
       zoomControl={false}
       attributionControl={true}
-      className="w-full h-full"
+      className="h-full w-full"
     >
       {/* Render both layers via react-leaflet; refs expose Leaflet instances */}
       <TileLayer
@@ -134,11 +115,7 @@ export default function SideBySideView({
 
       {/* Controllers */}
       <ViewSync onViewChange={onViewChange} />
-      <RecenterController
-        center={center}
-        zoom={zoom}
-        locateMarker={locateMarker}
-      />
+      <CaptureMap onMapReady={onMapReady} />
     </MapContainer>
   );
 }
