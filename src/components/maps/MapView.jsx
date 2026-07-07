@@ -3,8 +3,9 @@
  * Owns view/layer/mode state; children render the map and controls.
  */
 
-import React, { useMemo, useState, useCallback, useRef } from "react";
+import React, { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { BASE_LAYERS } from "../../config/mapSources.js";
+import { MARKER_SOURCES } from "../../config/markerSources.js";
 import SingleViewMap from "./SingleViewMap.jsx";
 import SideBySideView from "./SideBySideView.jsx";
 import TopBar from "../layout/TopBar.jsx";
@@ -29,13 +30,45 @@ function ensureValid(id, fallbackId) {
   return hasLayer(id) ? id : fallbackId;
 }
 
+// ---------- persisted state ----------
+const STORAGE_KEY = "hm:app-state:v1";
+
+function loadSavedState() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function isValidCenter(c) {
+  return (
+    Array.isArray(c) &&
+    c.length === 2 &&
+    Number.isFinite(c[0]) &&
+    Number.isFinite(c[1]) &&
+    Math.abs(c[0]) <= 90 &&
+    Math.abs(c[1]) <= 180
+  );
+}
+
 export default function MapView() {
+  // Snapshot persisted in localStorage (read once; every field validated below)
+  const [saved] = useState(loadSavedState);
+
   // View state (map is source of truth after mount; this survives mode switches)
-  const [center, setCenter] = useState(HOME_CENTER);
-  const [zoom, setZoom] = useState(HOME_ZOOM);
+  const [center, setCenter] = useState(
+    isValidCenter(saved?.center) ? saved.center : HOME_CENTER
+  );
+  const [zoom, setZoom] = useState(
+    Number.isFinite(saved?.zoom)
+      ? Math.min(Math.max(saved.zoom, 2), 22)
+      : HOME_ZOOM
+  );
 
   // Mode + panel
-  const [mode, setMode] = useState("single");
+  const [mode, setMode] = useState(saved?.mode === "split" ? "split" : "single");
   const [panelOpen, setPanelOpen] = useState(() => window.innerWidth >= 768);
 
   // Live Leaflet map instance (re-captured whenever the view remounts)
@@ -53,15 +86,66 @@ export default function MapView() {
     return { bottom: modernId, top: historicId };
   }, []);
 
-  const [bottomLayer, setBottomLayer] = useState(defaults.bottom);
-  const [topLayer, setTopLayer] = useState(defaults.top);
-  const [opacity, setOpacity] = useState(0.7);
+  const [bottomLayer, setBottomLayer] = useState(
+    ensureValid(saved?.bottomLayer, defaults.bottom)
+  );
+  const [topLayer, setTopLayer] = useState(
+    ensureValid(saved?.topLayer, defaults.top)
+  );
+  const [opacity, setOpacity] = useState(
+    Number.isFinite(saved?.opacity)
+      ? Math.min(Math.max(saved.opacity, 0), 1)
+      : 0.7
+  );
 
-  const [leftLayer, setLeftLayer] = useState(defaults.bottom);
-  const [rightLayer, setRightLayer] = useState(defaults.top);
+  const [leftLayer, setLeftLayer] = useState(
+    ensureValid(saved?.leftLayer, defaults.bottom)
+  );
+  const [rightLayer, setRightLayer] = useState(
+    ensureValid(saved?.rightLayer, defaults.top)
+  );
 
   // Data source — null means "none"
-  const [activeSource, setActiveSource] = useState(null);
+  const [activeSource, setActiveSource] = useState(
+    saved?.activeSource && MARKER_SOURCES[saved.activeSource]
+      ? saved.activeSource
+      : null
+  );
+
+  // Persist app state so a refresh restores the same view
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            center,
+            zoom,
+            mode,
+            bottomLayer,
+            topLayer,
+            leftLayer,
+            rightLayer,
+            opacity,
+            activeSource,
+          })
+        );
+      } catch {
+        // storage unavailable (private mode, quota) — skip silently
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [
+    center,
+    zoom,
+    mode,
+    bottomLayer,
+    topLayer,
+    leftLayer,
+    rightLayer,
+    opacity,
+    activeSource,
+  ]);
 
   // ---------- map interactions ----------
   const onViewChange = useCallback((c, z) => {
@@ -109,10 +193,6 @@ export default function MapView() {
       () => setLocating(false),
       { enableHighAccuracy: true, timeout: 12000 }
     );
-  }, []);
-
-  const handleHome = useCallback(() => {
-    mapRef.current?.flyTo(HOME_CENTER, HOME_ZOOM, { duration: 1.1 });
   }, []);
 
   const handleZoomIn = useCallback(() => mapRef.current?.zoomIn(), []);
@@ -213,7 +293,6 @@ export default function MapView() {
         canZoomOut={zoom > minZoom}
         onLocate={handleLocate}
         locating={locating}
-        onHome={handleHome}
       />
     </div>
   );

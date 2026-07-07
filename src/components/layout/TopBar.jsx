@@ -8,7 +8,7 @@ import SearchBar from "../controls/SearchBar.jsx";
  */
 export default function TopBar({ mode, onModeChange, panelOpen, onTogglePanel }) {
   return (
-    <header className="pointer-events-none absolute inset-x-3 top-3 z-[1050] flex items-start gap-2">
+    <header className="pointer-events-none absolute inset-x-3 top-3 z-[1050] flex flex-wrap items-start gap-2">
       {/* Brand */}
       <div className="hm-surface pointer-events-auto hidden h-11 shrink-0 items-center gap-2.5 px-3.5 lg:flex">
         <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-bronze-600 text-white">
@@ -24,8 +24,8 @@ export default function TopBar({ mode, onModeChange, panelOpen, onTogglePanel })
         </div>
       </div>
 
-      {/* Search */}
-      <div className="pointer-events-auto min-w-0 flex-1 sm:max-w-md">
+      {/* Search — full-width row on phones, inline from sm up */}
+      <div className="pointer-events-auto relative z-10 w-full min-w-0 sm:w-auto sm:flex-1 sm:max-w-md">
         <SearchBar />
       </div>
 

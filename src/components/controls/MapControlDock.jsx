@@ -1,9 +1,9 @@
 import React from "react";
-import { Plus, Minus, LocateFixed, House, Loader2 } from "lucide-react";
+import { Plus, Minus, LocateFixed, Loader2 } from "lucide-react";
 
 /**
  * MapControlDock — floating map controls, bottom-left.
- * Zoom in/out, locate me, reset to home view.
+ * Zoom in/out, locate me.
  */
 export default function MapControlDock({
   onZoomIn,
@@ -12,7 +12,6 @@ export default function MapControlDock({
   canZoomOut = true,
   onLocate,
   locating = false,
-  onHome,
 }) {
   return (
     <div className="absolute bottom-6 left-3 z-[1050] flex flex-col gap-2">
@@ -41,7 +40,7 @@ export default function MapControlDock({
         </button>
       </div>
 
-      {/* Locate + home */}
+      {/* Locate */}
       <div className="hm-surface flex flex-col overflow-hidden">
         <button
           type="button"
@@ -55,16 +54,6 @@ export default function MapControlDock({
           ) : (
             <LocateFixed size={17} />
           )}
-        </button>
-        <div className="mx-2 h-px bg-stone-200" aria-hidden />
-        <button
-          type="button"
-          className="hm-icon-btn"
-          onClick={onHome}
-          title="Reset view"
-          aria-label="Reset view"
-        >
-          <House size={17} />
         </button>
       </div>
     </div>
