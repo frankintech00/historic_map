@@ -2,6 +2,7 @@ import React from "react";
 import { X, ArrowUpDown, Check } from "lucide-react";
 import { groupedBaseLayers } from "../../config/mapSources.js";
 import { MARKER_SOURCES } from "../../config/markerSources.js";
+import OpacityControl from "../controls/OpacityControl.jsx";
 
 /**
  * LayerPanel — all layer & data controls in one place.
@@ -106,29 +107,7 @@ export default function LayerPanel({
 
             {/* Opacity (single mode) */}
             {mode === "single" && (
-              <section className="space-y-2">
-                <div className="flex items-baseline justify-between">
-                  <span className="hm-label">Overlay opacity</span>
-                  <span className="text-xs font-semibold tabular-nums text-bronze-700">
-                    {Math.round(opacity * 100)}%
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={opacity}
-                  onChange={(e) => onOpacityChange(parseFloat(e.target.value))}
-                  className="hm-range"
-                  style={{ "--hm-range-fill": `${opacity * 100}%` }}
-                  aria-label="Overlay opacity"
-                />
-                <div className="flex justify-between text-[10px] font-medium uppercase tracking-wider text-stone-400">
-                  <span>Modern</span>
-                  <span>Historic</span>
-                </div>
-              </section>
+              <OpacityControl opacity={opacity} onChange={onOpacityChange} />
             )}
 
             <div className="h-px bg-stone-200" />

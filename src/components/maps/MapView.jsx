@@ -11,6 +11,7 @@ import SideBySideView from "./SideBySideView.jsx";
 import TopBar from "../layout/TopBar.jsx";
 import LayerPanel from "../panels/LayerPanel.jsx";
 import MapControlDock from "../controls/MapControlDock.jsx";
+import OpacityControl from "../controls/OpacityControl.jsx";
 import { useSearchGoto } from "../../state/SearchBus.jsx";
 import { createShareUrl, readSharedView } from "../../lib/shareView.js";
 
@@ -327,6 +328,11 @@ export default function MapView() {
         onLocate={handleLocate}
         locating={locating}
       />
+      {!isSplit && !panelOpen && (
+        <section aria-label="Map opacity" className="hm-surface absolute bottom-[max(1.5rem,env(safe-area-inset-bottom))] left-16 right-3 z-[1050] max-w-sm px-3 py-2 md:hidden">
+          <OpacityControl opacity={opacity} onChange={setOpacity} />
+        </section>
+      )}
       {shareUrl && (
         <section aria-label="Share map view" className="hm-surface absolute inset-x-3 top-28 z-[1100] p-4 sm:inset-x-auto sm:right-3 sm:top-16 sm:w-96">
           <div className="mb-2 flex items-center justify-between gap-3">
@@ -339,7 +345,7 @@ export default function MapView() {
         </section>
       )}
       {notice && (
-        <div role="status" className="hm-surface absolute bottom-8 left-16 right-3 z-[1100] flex items-center gap-3 p-3 text-sm sm:left-20 sm:right-auto sm:max-w-md">
+        <div role="status" className={`hm-surface absolute ${!isSplit && !panelOpen ? "bottom-[calc(max(1.5rem,env(safe-area-inset-bottom))+7rem)] md:bottom-8" : "bottom-8"} left-16 right-3 z-[1100] flex items-center gap-3 p-3 text-sm sm:left-20 sm:right-auto sm:max-w-md`}>
           <span>{notice}</span>
           <button onClick={() => setNotice("")} className="hm-seg-btn" aria-label="Dismiss message">Close</button>
         </div>
