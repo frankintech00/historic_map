@@ -9,6 +9,7 @@ import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "../../lib/leaflet-setup.js";
 
 import { MARKER_SOURCES } from "../../config/markerSources.js";
+import { createPopupSafeRefresh } from "../../lib/popupSafeRefresh.js";
 import {
   queryFeaturesByBbox,
   fieldsFromFieldMap,
@@ -70,6 +71,7 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
   const debTimerRef = useRef(null); // debounce timer
   const abortRef = useRef(null); // AbortController for fetches
   const mountedRef = useRef(false); // component mounted flag
+  const refreshRef = useRef(null);
 
   // Per-layer metadata cache (supportsPagination, maxRecordCount)
   const metaRef = useRef({
@@ -84,7 +86,7 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
     if (DEV_DEBUG) console.log("[MarkerLayer]", ...args);
   }
 
-  async function ensureLayerMeta(cfg) {
+  async function ensureLayerMeta(cfg, signal) {
     if (metaRef.current.loaded) return metaRef.current;
 
     const base = cfg.serviceUrl.endsWith("/")
@@ -93,9 +95,10 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
     const metaUrl = `${base}/${cfg.layerId}?f=json`;
 
     try {
-      const res = await fetch(metaUrl);
+      const res = await fetch(metaUrl, { signal });
       if (!res.ok) throw new Error(`Meta ${res.status}`);
       const json = await res.json();
+      if (signal.aborted) return metaRef.current;
 
       const supportsPagination =
         !!json?.advancedQueryCapabilities?.supportsPagination;
@@ -105,6 +108,7 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
       metaRef.current = { supportsPagination, maxRecordCount, loaded: true };
       dlog("meta loaded", { supportsPagination, maxRecordCount });
     } catch (e) {
+      if (signal.aborted) return metaRef.current;
       metaRef.current = {
         supportsPagination: false,
         maxRecordCount: 1000,
@@ -184,6 +188,11 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
       return;
     }
 
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const isCurrent = () => mountedRef.current && !controller.signal.aborted && abortRef.current === controller;
+
     const zoom = map.getZoom();
     const bounds = map.getBounds();
     const center = map.getCenter();
@@ -195,19 +204,16 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
         minFetchZoom: minZoom,
         center,
       });
-      setClusterGeoJSON({ type: "FeatureCollection", features: [] });
+      refreshRef.current?.update({ type: "FeatureCollection", features: [] });
       return;
     }
-
-    // Cancel any in-flight fetch
-    if (abortRef.current) abortRef.current.abort();
-    abortRef.current = new AbortController();
 
     // Prepare outFields from fieldMap (only fields we know exist on the layer)
     const fields = fieldsFromFieldMap(cfg.fieldMap);
 
     // Honour server-side limits
-    const meta = await ensureLayerMeta(cfg);
+    const meta = await ensureLayerMeta(cfg, controller.signal);
+    if (!isCurrent()) return;
     const safeCfg = {
       ...cfg,
       supportsPagination: !!meta.supportsPagination,
@@ -229,23 +235,26 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
         zoom,
         fields,
         where: cfg.defaultWhere,
-        signal: abortRef.current.signal,
+        signal: controller.signal,
       });
 
+      if (!isCurrent()) return;
       dlog("fetch success", { features: geojson.features?.length || 0 });
-      setClusterGeoJSON(geojson);
+      refreshRef.current?.update(geojson);
     } catch (err) {
-      if (err?.name === "AbortError") {
+      if (!isCurrent() || err?.name === "AbortError") {
         dlog("fetch aborted");
         return;
       }
       dlog("fetch error", err?.message || err);
-      setClusterGeoJSON({ type: "FeatureCollection", features: [] });
+      // Keep the last successful markers (and popup) on a transient failure.
     }
   }
 
   function scheduleFetch() {
     if (!mountedRef.current) return;
+    abortRef.current?.abort();
+    refreshRef.current?.clear();
     if (debTimerRef.current) clearTimeout(debTimerRef.current);
     debTimerRef.current = setTimeout(runFetch, debounceMs);
   }
@@ -254,6 +263,7 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
 
   useEffect(() => {
     mountedRef.current = true;
+    metaRef.current = { supportsPagination: false, maxRecordCount: 1000, loaded: false };
 
     // Create and attach the cluster group once
     const cluster = L.markerClusterGroup({
@@ -270,6 +280,18 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
     });
     clusterRef.current = cluster;
     map.addLayer(cluster);
+    const refresh = createPopupSafeRefresh(
+      () => cluster.getLayers().some((layer) => layer.isPopupOpen?.()),
+      setClusterGeoJSON
+    );
+    refreshRef.current = refresh;
+    let popupCloseTimer;
+    const onPopupClose = () => {
+      clearTimeout(popupCloseTimer);
+      // A marker tap can close one popup and open another in the same event.
+      popupCloseTimer = setTimeout(() => refresh.flush(), 0);
+    };
+    map.on("popupclose", onPopupClose);
 
     dlog("mounted; scheduling initial fetch");
     scheduleFetch();
@@ -282,6 +304,10 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
 
     return () => {
       mountedRef.current = false;
+      map.off("popupclose", onPopupClose);
+      clearTimeout(popupCloseTimer);
+      refresh.clear();
+      refreshRef.current = null;
 
       map.off("moveend zoomend", onMoveOrZoom);
 
