@@ -1,12 +1,12 @@
 import React from "react";
-import { Compass, Layers, Square, Columns2 } from "lucide-react";
+import { Compass, Layers, Square, Columns2, Share2 } from "lucide-react";
 import SearchBar from "../controls/SearchBar.jsx";
 
 /**
  * TopBar — floating chrome across the top of the map.
  * Brand · Search · Single/Compare toggle · Layers panel toggle
  */
-export default function TopBar({ mode, onModeChange, panelOpen, onTogglePanel }) {
+export default function TopBar({ mode, onModeChange, panelOpen, onTogglePanel, onShare }) {
   return (
     <header className="pointer-events-none absolute inset-x-3 top-3 z-[1050] flex flex-wrap items-start gap-2">
       {/* Brand */}
@@ -30,6 +30,9 @@ export default function TopBar({ mode, onModeChange, panelOpen, onTogglePanel })
       </div>
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
+        <button type="button" onClick={onShare} title="Share map view" aria-label="Share map view" className="hm-surface hm-icon-btn pointer-events-auto !h-11 !w-11">
+          <Share2 size={18} aria-hidden />
+        </button>
         {/* Mode toggle */}
         <div className="hm-surface pointer-events-auto flex h-11 items-center px-1.5">
           <div className="hm-seg" role="group" aria-label="View mode">

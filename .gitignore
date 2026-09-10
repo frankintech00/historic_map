@@ -27,9 +27,5 @@ dist-ssr
 .env.local
 .env
 
-# docker files
-dockerfile
-docker-compose.yml
-
 # Claude Code local settings
 .claude/

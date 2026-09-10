@@ -12,6 +12,7 @@ import TopBar from "../layout/TopBar.jsx";
 import LayerPanel from "../panels/LayerPanel.jsx";
 import MapControlDock from "../controls/MapControlDock.jsx";
 import { useSearchGoto } from "../../state/SearchBus.jsx";
+import { createShareUrl, readSharedView } from "../../lib/shareView.js";
 
 const HOME_CENTER = [55.8642, -4.2518]; // Glasgow
 const HOME_ZOOM = 12;
@@ -34,6 +35,8 @@ function ensureValid(id, fallbackId) {
 const STORAGE_KEY = "hm:app-state:v1";
 
 function loadSavedState() {
+  const shared = readSharedView(window.location.hash);
+  if (shared) return shared;
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
     return parsed && typeof parsed === "object" ? parsed : null;
@@ -107,7 +110,7 @@ export default function MapView() {
 
   // Data source — null means "none"
   const [activeSource, setActiveSource] = useState(
-    saved?.activeSource && MARKER_SOURCES[saved.activeSource]
+    typeof saved?.activeSource === "string" && Object.hasOwn(MARKER_SOURCES, saved.activeSource)
       ? saved.activeSource
       : null
   );
@@ -175,8 +178,32 @@ export default function MapView() {
   // Locate
   const [locatePoint, setLocatePoint] = useState(null);
   const [locating, setLocating] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [shareUrl, setShareUrl] = useState("");
+  function handleShare() {
+    const map = mapRef.current;
+    const position = map?.getCenter();
+    setShareUrl(createShareUrl(window.location.href, {
+      center: position ? [position.lat, position.lng] : center,
+      zoom: map?.getZoom() ?? zoom,
+      mode, bottomLayer, topLayer, leftLayer, rightLayer, opacity, activeSource,
+    }));
+    setNotice("");
+  }
+  async function copyShareUrl() {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setNotice("Map link copied.");
+    } catch {
+      setNotice("Select the link above and copy it to share this view.");
+    }
+  }
   const handleLocate = useCallback(() => {
-    if (!("geolocation" in navigator)) return;
+    setNotice("");
+    if (!("geolocation" in navigator)) {
+      setNotice("Location is unavailable in this browser. Search for a place instead.");
+      return;
+    }
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -190,7 +217,12 @@ export default function MapView() {
         }
         setLocating(false);
       },
-      () => setLocating(false),
+      (error) => {
+        setLocating(false);
+        setNotice(error.code === 1
+          ? "Location access was denied. Allow location in your browser settings or search for a place."
+          : "Could not find your location. Try again or search for a place.");
+      },
       { enableHighAccuracy: true, timeout: 12000 }
     );
   }, []);
@@ -267,6 +299,7 @@ export default function MapView() {
       )}
 
       <TopBar
+        onShare={handleShare}
         mode={mode}
         onModeChange={setMode}
         panelOpen={panelOpen}
@@ -294,6 +327,23 @@ export default function MapView() {
         onLocate={handleLocate}
         locating={locating}
       />
+      {shareUrl && (
+        <section aria-label="Share map view" className="hm-surface absolute inset-x-3 top-28 z-[1100] p-4 sm:inset-x-auto sm:right-3 sm:top-16 sm:w-96">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <h2 className="font-semibold">Share this map view</h2>
+            <button className="hm-seg-btn" onClick={() => setShareUrl("")} aria-label="Close share panel">Close</button>
+          </div>
+          <p className="mb-3 text-sm text-stone-600">Open this link to restore the location, map layers and view mode.</p>
+          <input autoFocus aria-label="Map link" readOnly value={shareUrl} onFocus={(e) => e.target.select()} className="hm-select cursor-text" />
+          <button className="hm-seg-btn mt-3 bg-bronze-50" onClick={copyShareUrl}>Copy link</button>
+        </section>
+      )}
+      {notice && (
+        <div role="status" className="hm-surface absolute bottom-8 left-16 right-3 z-[1100] flex items-center gap-3 p-3 text-sm sm:left-20 sm:right-auto sm:max-w-md">
+          <span>{notice}</span>
+          <button onClick={() => setNotice("")} className="hm-seg-btn" aria-label="Dismiss message">Close</button>
+        </div>
+      )}
     </div>
   );
 }

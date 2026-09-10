@@ -6,6 +6,9 @@ A Progressive Web App (PWA) built with **React**, **Leaflet**, and **Tailwind CS
 
 ## Features
 
+### Share a Map View
+Use the share button to copy a link containing the current location, zoom, map layers, view mode, opacity and data overlay. Shared links take precedence over the recipient's saved view. If clipboard access is unavailable, select and copy the link manually.
+
 ### Side-by-Side Map Comparison
 Interactive draggable slider with fully synchronised maps.
 
@@ -60,7 +63,7 @@ All sources use live BBOX queries to ArcGIS FeatureServer with debounced, cancel
 ## Tech Stack
 
 **Frontend:**
-- React 18 + Vite
+- React 19 + Vite
 - Leaflet 1.9.4
 - leaflet-side-by-side 2.2.0
 - Tailwind CSS
@@ -138,9 +141,13 @@ npm run build
 ## Docker Deployment
 
 ```bash
-docker build -t historic-map .
-docker run -p 3000:3000 historic-map
+docker compose up -d --build
+docker compose ps
 ```
+
+Set `VITE_MAPTILER_KEY` in `.env` before building. Compose passes it to Vite at build time; the key is included in the public frontend bundle. The app is served at `http://localhost:8090`. Environment files are excluded from the Docker build context.
+
+Run `npm test`, `npm run lint` and `npm run build` before deploying.
 
 ---
 

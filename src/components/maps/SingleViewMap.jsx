@@ -6,6 +6,7 @@ import "leaflet/dist/leaflet.css";
 import "../../lib/leaflet-setup.js";
 
 import { BASE_LAYERS } from "../../config/mapSources.js";
+import { tileOptions } from "../../lib/tileOptions.js";
 import SearchPin from "../overlays/SearchPin.jsx";
 import LocatePin from "../overlays/LocatePin.jsx";
 import MarkerLayer from "../overlays/MarkerLayer.jsx";
@@ -61,16 +62,19 @@ export default function SingleViewMap({
     <MapContainer
       center={center}
       zoom={zoom}
+      minZoom={2}
+      maxZoom={22}
       className="h-full w-full"
       style={style}
       zoomControl={false}
       attributionControl={true}
     >
-      <TileLayer url={bottomLayer.url} attribution={bottomLayer.attribution} />
+      <TileLayer key={`base-${bottomLayer.id}`} {...tileOptions(bottomLayer)} zIndex={1} />
       {topLayer && (
         <TileLayer
-          url={topLayer.url}
-          attribution={topLayer.attribution}
+          key={`overlay-${topLayer.id}`}
+          {...tileOptions(topLayer)}
+          zIndex={2}
           opacity={opacity}
         />
       )}

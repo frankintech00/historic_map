@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import "leaflet-side-by-side";
 import { BASE_LAYERS } from "../../config/mapSources.js";
+import { tileOptions } from "../../lib/tileOptions.js";
 import SearchPin from "../overlays/SearchPin.jsx";
 import LocatePin from "../overlays/LocatePin.jsx";
 import MarkerLayer from "../overlays/MarkerLayer.jsx";
@@ -43,9 +44,12 @@ function SideBySideControl({ leftLayerRef, rightLayerRef }) {
     if (!map || !left || !right) return;
 
     controlRef.current = L.control.sideBySide(left, right).addTo(map);
+    controlRef.current.getContainer()?.querySelector("input")?.setAttribute("aria-label", "Map comparison divider");
 
     return () => {
       try {
+        controlRef.current?.setLeftLayers([]);
+        controlRef.current?.setRightLayers([]);
         controlRef.current?.remove();
       } catch {
         // control already detached during map teardown
@@ -86,6 +90,8 @@ export default function SideBySideView({
     <MapContainer
       center={center}
       zoom={zoom}
+      minZoom={2}
+      maxZoom={22}
       style={style}
       zoomControl={false}
       attributionControl={true}
@@ -94,17 +100,17 @@ export default function SideBySideView({
       {/* Render both layers via react-leaflet; refs expose Leaflet instances */}
       <TileLayer
         ref={leftRef}
-        url={leftLayer.url}
-        attribution={leftLayer.attribution}
+        key={`left-${leftLayer.id}`}
+        {...tileOptions(leftLayer)}
       />
       <TileLayer
         ref={rightRef}
-        url={rightLayer.url}
-        attribution={rightLayer.attribution}
+        key={`right-${rightLayer.id}`}
+        {...tileOptions(rightLayer)}
       />
 
       {/* Build the divider from those layers */}
-      <SideBySideControl leftLayerRef={leftRef} rightLayerRef={rightRef} />
+      <SideBySideControl key={`${leftLayer.id}:${rightLayer.id}`} leftLayerRef={leftRef} rightLayerRef={rightRef} />
 
       {/* Data layer markers overlay */}
       {activeSource && <MarkerLayer sourceKey={activeSource} />}

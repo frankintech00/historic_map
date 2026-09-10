@@ -46,6 +46,8 @@ export default function MapControlDock({
           type="button"
           className="hm-icon-btn"
           onClick={onLocate}
+          disabled={locating}
+          aria-busy={locating}
           title="Find my location"
           aria-label="Find my location"
         >

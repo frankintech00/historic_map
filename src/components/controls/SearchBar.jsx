@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import { Search, X, Loader2, MapPin } from "lucide-react";
 import { dispatchSearchGoto } from "../../state/SearchBus";
 
@@ -13,6 +13,8 @@ export default function SearchBar() {
   const [results, setResults] = useState([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const listId = useId();
   const [activeIndex, setActiveIndex] = useState(-1);
   const boxRef = useRef(null);
   const inputRef = useRef(null);
@@ -21,6 +23,9 @@ export default function SearchBar() {
   // Debounced geocoding search
   useEffect(() => {
     const query = q.trim();
+    setError("");
+    setResults([]);
+    setActiveIndex(-1);
     if (query.length < 2) {
       setResults([]);
       setOpen(false);
@@ -80,9 +85,9 @@ export default function SearchBar() {
         setLoading(false);
       } catch (err) {
         if (err.name !== "AbortError") {
-          console.error("[SearchBar]", err);
+          setError("Search is unavailable. Try again, or enter latitude, longitude coordinates.");
           setResults([]);
-          setOpen(false);
+          setOpen(true);
           setLoading(false);
         }
       }
@@ -158,14 +163,21 @@ export default function SearchBar() {
         <input
           ref={inputRef}
           value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onFocus={() => results.length && setOpen(true)}
+          onChange={(e) => {
+            setResults([]);
+            setActiveIndex(-1);
+            setOpen(false);
+            setQ(e.target.value);
+          }}
+          onFocus={() => (results.length || error) && setOpen(true)}
           onKeyDown={onKeyDown}
           placeholder="Search places, postcodes or coordinates…"
           aria-label="Search UK places"
           role="combobox"
           aria-expanded={open}
           aria-autocomplete="list"
+          aria-controls={open && results.length ? listId : undefined}
+          aria-activedescendant={open && results[activeIndex] ? `${listId}-${activeIndex}` : undefined}
           size={1}
           className="h-full min-w-0 flex-1 bg-transparent text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none"
         />
@@ -175,7 +187,7 @@ export default function SearchBar() {
             aria-hidden
           />
         )}
-        {q && !loading && (
+        {q && (
           <button
             type="button"
             onClick={clear}
@@ -193,10 +205,12 @@ export default function SearchBar() {
             <ul
               ref={listRef}
               role="listbox"
+              id={listId}
+              aria-label="Search results"
               className="hm-scroll max-h-72 overflow-y-auto py-1"
             >
               {results.map((r, idx) => (
-                <li key={`${r.lat}-${r.lng}-${idx}`} role="option" aria-selected={idx === activeIndex}>
+                <li id={`${listId}-${idx}`} key={`${r.lat}-${r.lng}-${idx}`} role="option" aria-selected={idx === activeIndex}>
                   <button
                     type="button"
                     data-index={idx}
@@ -226,8 +240,8 @@ export default function SearchBar() {
             </ul>
           ) : (
             !loading && (
-              <div className="px-4 py-4 text-center text-sm text-stone-500">
-                No results found
+              <div role="status" className="px-4 py-4 text-center text-sm text-stone-500">
+                {error || "No results found. Try another place or postcode."}
               </div>
             )
           )}

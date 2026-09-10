@@ -8,6 +8,7 @@ RUN npm ci
 
 # Copy everything else and build
 COPY . .
+ARG VITE_MAPTILER_KEY
 RUN npm run build
 
 # --- Runtime stage ---
