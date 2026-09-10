@@ -210,6 +210,35 @@
   font-size: 12px;
   color: #78716c;
 }
+.hm-popup-details {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid #e7e5e4;
+  font-size: 12px;
+}
+.hm-popup-details dt {
+  color: #78716c;
+  font-size: 11px;
+}
+.hm-popup-details dd {
+  margin: 1px 0 0;
+  color: #292524;
+  overflow-wrap: anywhere;
+}
+.hm-popup-source {
+  margin-top: 12px;
+  font-size: 10px;
+  color: #78716c;
+}
+.leaflet-popup-content {
+  overflow-wrap: anywhere;
+}
+.leaflet-popup-scrolled {
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
 .hm-popup-link {
   display: inline-flex;
   align-items: center;

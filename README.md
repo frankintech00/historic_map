@@ -22,6 +22,8 @@ User location marker with automatic centring across all view modes.
 Search bar with UK results and automatic zoom.
 
 ### Data Layer Overlays
+
+Marker popups show additional source details where available: site group, parish, record references, designation dates and location accuracy. Longer popups scroll on mobile. Missing values are omitted; designation and record-update dates are labelled separately from the site's historical period. The map feeds do not include full record narratives or photo collections.
 Radio-toggle data overlays from Historic Environment Scotland (HES) and Canmore — one layer active at a time for a clean map. Sources include:
 
 | Layer | Coverage |

@@ -4,6 +4,14 @@
 export const MARKER_SOURCES = {
   canmoreTerrestrial: {
     label: "Canmore Sites",
+    detailFields: [
+      { field: "BROADCLASS", label: "Site group" },
+      { field: "PARISH", label: "Parish" },
+      { field: "SITENUMBER", label: "Site number" },
+      { field: "CANMOREID", label: "Canmore ID" },
+      { field: "ACCURACY", label: "Location accuracy" },
+      { field: "LASTUPDATE", label: "Record updated", format: "date" },
+    ],
     description: "Historic Scotland terrestrial archaeology",
     color: "#b06424",
     type: "arcgis-feature",
@@ -29,6 +37,14 @@ export const MARKER_SOURCES = {
 
   hesListedBuildings: {
     label: "Listed Buildings",
+    detailFields: [
+      { field: "DES_REF", label: "Listing reference" },
+      { field: "DES_TITLE", label: "Listed group" },
+      { field: "DESIGNATED", label: "Listed on", format: "date" },
+      { field: "AMENDED", label: "Designation amended", format: "date" },
+      { field: "PARBUR", label: "Parish / burgh" },
+      { field: "NAT_PARK", label: "National park" },
+    ],
     description: "Category A, B & C listed buildings (Scotland)",
     color: "#1d4ed8",
     type: "arcgis-feature",
@@ -51,6 +67,13 @@ export const MARKER_SOURCES = {
 
   hesScheduledMonuments: {
     label: "Scheduled Monuments",
+    detailFields: [
+      { field: "DES_REF", label: "Monument reference" },
+      { field: "DESIGNATED", label: "Scheduled on", format: "date" },
+      { field: "AMENDED", label: "Designation amended", format: "date" },
+      { field: "PARISH", label: "Parish" },
+      { field: "PRECISION", label: "Location precision" },
+    ],
     description: "Nationally important archaeological sites & monuments",
     color: "#b91c1c",
     type: "arcgis-feature",
@@ -74,6 +97,12 @@ export const MARKER_SOURCES = {
 
   hesGardens: {
     label: "Gardens & Designed Landscapes",
+    detailFields: [
+      { field: "DES_REF", label: "Inventory reference" },
+      { field: "DESIGNATED", label: "Added to inventory", format: "date" },
+      { field: "AMENDED", label: "Designation amended", format: "date" },
+      { field: "PRECISION", label: "Location precision" },
+    ],
     description: "Inventory of Gardens and Designed Landscapes",
     color: "#15803d",
     type: "arcgis-feature",
@@ -96,6 +125,12 @@ export const MARKER_SOURCES = {
 
   hesBattlefields: {
     label: "Historic Battlefields",
+    detailFields: [
+      { field: "DES_REF", label: "Inventory reference" },
+      { field: "DESIGNATED", label: "Added to inventory", format: "date" },
+      { field: "AMENDED", label: "Designation amended", format: "date" },
+      { field: "PRECISION", label: "Boundary precision" },
+    ],
     description: "Inventory of Historic Battlefields in Scotland",
     color: "#7c3aed",
     type: "arcgis-feature",
@@ -118,6 +153,11 @@ export const MARKER_SOURCES = {
 
   hesWorldHeritage: {
     label: "World Heritage Sites",
+    detailFields: [
+      { field: "DES_REF", label: "Reference" },
+      { field: "DES_TYPE", label: "Designation" },
+      { field: "PRECISION", label: "Boundary precision" },
+    ],
     description: "UNESCO World Heritage Sites in Scotland",
     color: "#0e7490",
     type: "arcgis-feature",
@@ -131,7 +171,6 @@ export const MARKER_SOURCES = {
     minFetchZoom: 1,
     fieldMap: {
       title: "DES_TITLE",
-      subtitle: "LOCAL_AUTH",
       url: "LINK",
     },
     attribution: "© Historic Environment Scotland",
@@ -140,6 +179,7 @@ export const MARKER_SOURCES = {
 
   hesPropertiesInCare: {
     label: "Properties in Care",
+    detailFields: [{ field: "PIC_ID", label: "Property reference" }],
     description: "HES managed historic properties open to the public",
     color: "#be185d",
     type: "arcgis-feature",
@@ -161,6 +201,14 @@ export const MARKER_SOURCES = {
 
   scottishRadiocarbon: {
     label: "Scottish Radiocarbon Index",
+    detailFields: [
+      { field: "BROADCLASS", label: "Site group" },
+      { field: "PARISH", label: "Parish" },
+      { field: "SITENUMBER", label: "Site number" },
+      { field: "CANMOREID", label: "Canmore ID" },
+      { field: "ACCURACY", label: "Location accuracy" },
+      { field: "LASTUPDATE", label: "Record updated", format: "date" },
+    ],
     description: "Radiocarbon-dated archaeological sites and samples",
     color: "#4d7c0f",
     type: "arcgis-feature",

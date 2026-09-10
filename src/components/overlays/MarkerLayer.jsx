@@ -9,6 +9,7 @@ import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "../../lib/leaflet-setup.js";
 
 import { MARKER_SOURCES } from "../../config/markerSources.js";
+import { buildMarkerPopup } from "../../lib/markerPopup.js";
 import { createPopupSafeRefresh } from "../../lib/popupSafeRefresh.js";
 import {
   queryFeaturesByBbox,
@@ -126,54 +127,16 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
     clusterRef.current.clearLayers();
 
     const src = MARKER_SOURCES[sourceKey] || {};
-    const fm = src.fieldMap || {};
     const pinIcon = makePinIcon(src.color || DEFAULT_MARKER_COLOR);
 
     // Build a lightweight GeoJSON layer; popups are strings for speed.
     const gjLayer = L.geoJSON(geojson, {
       pointToLayer: (feature, latlng) => L.marker(latlng, { icon: pinIcon }),
       onEachFeature: (feature, layer) => {
-        const p = feature.properties || {};
-        const nmrs = p[fm.title] ?? "Site";
-        const alt = p[fm.altName] ?? "";
-        const type = p[fm.siteType] ?? "";
-        const council = p[fm.subtitle] ?? "";
-        const county = p[fm.county] ?? "";
-        const grid = p[fm.gridRef] ?? "";
-        const href = p[fm.url];
-
-        const metaLine = [council, county, grid]
-          .filter(Boolean)
-          .map(escapeHtml)
-          .join(" · ");
-
-        const html = `
-          <div>
-            <div class="hm-popup-title">${escapeHtml(nmrs)}</div>
-            ${
-              alt
-                ? `<div class="hm-popup-subtitle">${escapeHtml(alt)}</div>`
-                : ""
-            }
-            ${
-              type
-                ? `<span class="hm-popup-chip">${escapeHtml(type)}</span>`
-                : ""
-            }
-            ${metaLine ? `<div class="hm-popup-meta">${metaLine}</div>` : ""}
-            ${
-              href
-                ? `<a href="${escapeAttr(href)}"
-                      class="hm-popup-link"
-                      target="_blank"
-                      rel="noopener">
-                     View full record →
-                   </a>`
-                : ""
-            }
-          </div>
-        `;
-        layer.bindPopup(html, { maxWidth: 300 });
+        layer.bindPopup(buildMarkerPopup(src, feature.properties), {
+          maxWidth: 300,
+          maxHeight: 260,
+        });
       },
     });
 
@@ -209,7 +172,10 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
     }
 
     // Prepare outFields from fieldMap (only fields we know exist on the layer)
-    const fields = fieldsFromFieldMap(cfg.fieldMap);
+    const fields = [...new Set([
+      ...fieldsFromFieldMap(cfg.fieldMap),
+      ...(cfg.detailFields || []).map(({ field }) => field),
+    ])];
 
     // Honour server-side limits
     const meta = await ensureLayerMeta(cfg, controller.signal);
@@ -333,15 +299,6 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
 
 /* ----------------------- helpers ----------------------- */
 
-function escapeHtml(s) {
-  return String(s)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
-}
-function escapeAttr(s) {
-  return String(s).replaceAll('"', "&quot;");
-}
 function boundsToReadable(bounds) {
   return {
     west: +bounds.getWest().toFixed(6),
