@@ -4,7 +4,7 @@
  */
 
 import React, { useMemo, useState, useCallback, useRef, useEffect } from "react";
-import { BASE_LAYERS } from "../../config/mapSources.js";
+import { BASE_LAYERS, getLayerById } from "../../config/mapSources.js";
 import { MARKER_SOURCES } from "../../config/markerSources.js";
 import SingleViewMap from "./SingleViewMap.jsx";
 import SideBySideView from "./SideBySideView.jsx";
@@ -14,6 +14,13 @@ import MapControlDock from "../controls/MapControlDock.jsx";
 import OpacityControl from "../controls/OpacityControl.jsx";
 import { useSearchGoto } from "../../state/SearchBus.jsx";
 import { createShareUrl, readSharedView } from "../../lib/shareView.js";
+import { outsideCoverage } from "../../lib/tileOptions.js";
+import { linkedKey, newId } from "../../lib/discoveryModel.js";
+import { useDiscoveries } from "../../state/useDiscoveries.js";
+import { useRecordNote } from "../../state/DiscoveryBus.js";
+import DiscoveryLayer from "../overlays/DiscoveryLayer.jsx";
+import DiscoveryPanel from "../discoveries/DiscoveryPanel.jsx";
+import LocationPicker from "../discoveries/LocationPicker.jsx";
 
 const HOME_CENTER = [55.8642, -4.2518]; // Glasgow
 const HOME_ZOOM = 12;
@@ -44,6 +51,21 @@ function loadSavedState() {
   } catch {
     return null;
   }
+}
+
+function emptyDraft(overrides = {}) {
+  return {
+    id: newId(),
+    title: "",
+    notes: "",
+    category: "other",
+    lat: null,
+    lng: null,
+    observedOn: new Date().toISOString().slice(0, 10),
+    photos: [],
+    linkedRecord: null,
+    ...overrides,
+  };
 }
 
 function isValidCenter(c) {
@@ -116,6 +138,19 @@ export default function MapView() {
       : null
   );
 
+  // My Discoveries (stored in this browser only — see state/useDiscoveries.js)
+  const discoveries = useDiscoveries();
+  const [showDiscoveries, setShowDiscoveries] = useState(saved?.showDiscoveries !== false);
+  // disc.view: null | "list" | "detail" | "form" | "pick"
+  const [disc, setDisc] = useState({ view: null, id: null, draft: null, isNew: false });
+  const closeDisc = useCallback(() => setDisc({ view: null, id: null, draft: null, isNew: false }), []);
+
+  // Layers that report no imagery for the current view: { [layerId]: true }
+  const [noTiles, setNoTiles] = useState({});
+  const handleCoverage = useCallback((layerId, hasImagery) => {
+    setNoTiles((prev) => (!!prev[layerId] === !hasImagery ? prev : { ...prev, [layerId]: !hasImagery }));
+  }, []);
+
   // Persist app state so a refresh restores the same view
   useEffect(() => {
     const t = setTimeout(() => {
@@ -132,6 +167,7 @@ export default function MapView() {
             rightLayer,
             opacity,
             activeSource,
+            showDiscoveries,
           })
         );
       } catch {
@@ -149,6 +185,7 @@ export default function MapView() {
     rightLayer,
     opacity,
     activeSource,
+    showDiscoveries,
   ]);
 
   // ---------- map interactions ----------
@@ -234,6 +271,101 @@ export default function MapView() {
   const maxZoom = mapRef.current?.getMaxZoom?.() ?? 22;
   const minZoom = 2;
 
+  // ---------- My Discoveries ----------
+  const openDiscPanel = useCallback((next) => {
+    setDisc(next);
+    if (window.innerWidth < 768) setPanelOpen(false);
+  }, []);
+
+  const startAddDiscovery = useCallback(() => {
+    setNotice("");
+    openDiscPanel({ view: "pick", id: null, draft: emptyDraft(), isNew: true });
+  }, [openDiscPanel]);
+
+  const confirmPickedLocation = useCallback(() => {
+    const position = mapRef.current?.getCenter();
+    if (!position) return;
+    setDisc((d) => ({ ...d, view: "form", draft: { ...d.draft, lat: position.lat, lng: position.lng } }));
+  }, []);
+
+  const [pickLocating, setPickLocating] = useState(false);
+  const locateForDiscovery = useCallback(() => {
+    if (!("geolocation" in navigator)) {
+      setNotice("Location is unavailable in this browser. Move the map to the spot instead.");
+      return;
+    }
+    setPickLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setPickLocating(false);
+        setLocatePoint({ lat: latitude, lng: longitude, label: "You are here" });
+        const map = mapRef.current;
+        map?.setView([latitude, longitude], Math.max(map.getZoom(), 17));
+        setDisc((d) => (d.view === "pick"
+          ? { ...d, view: "form", draft: { ...d.draft, lat: latitude, lng: longitude } }
+          : d));
+      },
+      (error) => {
+        setPickLocating(false);
+        setNotice(error.code === 1
+          ? "Location access was denied. Move the map to the spot instead."
+          : "Could not find your location. Move the map to the spot instead.");
+      },
+      { enableHighAccuracy: true, timeout: 12000 }
+    );
+  }, []);
+
+  const saveDiscovery = useCallback(async (draft) => {
+    const record = await discoveries.save(draft);
+    setShowDiscoveries(true);
+    setDisc({ view: "detail", id: record.id, draft: null, isNew: false });
+  }, [discoveries]);
+
+  const showDiscoveryOnMap = useCallback((record) => {
+    setShowDiscoveries(true);
+    const map = mapRef.current;
+    map?.flyTo([record.lat, record.lng], Math.max(map.getZoom(), 16), { duration: 1.1 });
+    if (window.innerWidth < 768) closeDisc();
+  }, [closeDisc]);
+
+  const selectDiscovery = useCallback((id) => {
+    openDiscPanel({ view: "detail", id, draft: null, isNew: false });
+  }, [openDiscPanel]);
+
+  // "Add personal note" from an official record popup: reuse the existing
+  // note for that record if there is one, otherwise start a linked draft.
+  const handleRecordNote = useCallback((record) => {
+    const linkedRecord = {
+      source: record.source,
+      sourceLabel: record.sourceLabel,
+      id: record.id,
+      title: record.title,
+      url: record.url,
+    };
+    const existing = discoveries.items.find((d) => linkedKey(d.linkedRecord) === linkedKey(linkedRecord));
+    if (existing) {
+      openDiscPanel({ view: "detail", id: existing.id, draft: null, isNew: false });
+      return;
+    }
+    openDiscPanel({
+      view: "form",
+      id: null,
+      isNew: true,
+      draft: emptyDraft({ title: record.title, lat: record.lat, lng: record.lng, linkedRecord }),
+    });
+  }, [discoveries.items, openDiscPanel]);
+  useRecordNote(handleRecordNote);
+
+  const selectedDiscovery = disc.id ? discoveries.items.find((d) => d.id === disc.id) || null : null;
+  const picking = disc.view === "pick";
+
+  // ---------- coverage hint ----------
+  const shownLayerIds = mode === "split" ? [leftLayer, rightLayer] : [bottomLayer, topLayer];
+  const uncovered = [...new Set(shownLayerIds)]
+    .map(getLayerById)
+    .filter((layer) => layer && (noTiles[layer.id] || outsideCoverage(layer, center)));
+
   // ---------- panel wiring ----------
   const isSplit = mode === "split";
   const layerA = isSplit
@@ -282,7 +414,10 @@ export default function MapView() {
           onViewChange={onViewChange}
           onMapReady={handleMapReady}
           activeSource={activeSource}
-        />
+          onCoverage={handleCoverage}
+        >
+          {showDiscoveries && <DiscoveryLayer items={discoveries.items} onSelect={selectDiscovery} />}
+        </SideBySideView>
       ) : (
         <SingleViewMap
           center={center}
@@ -296,7 +431,10 @@ export default function MapView() {
           onViewChange={onViewChange}
           onMapReady={handleMapReady}
           activeSource={activeSource}
-        />
+          onCoverage={handleCoverage}
+        >
+          {showDiscoveries && <DiscoveryLayer items={discoveries.items} onSelect={selectDiscovery} />}
+        </SingleViewMap>
       )}
 
       <TopBar
@@ -318,6 +456,12 @@ export default function MapView() {
         onOpacityChange={setOpacity}
         activeSource={activeSource}
         onSourceChange={setActiveSource}
+        discoveries={{
+          count: discoveries.items.length,
+          visible: showDiscoveries,
+          onToggle: setShowDiscoveries,
+          onManage: () => openDiscPanel({ view: "list", id: null, draft: null, isNew: false }),
+        }}
       />
 
       <MapControlDock
@@ -327,8 +471,53 @@ export default function MapView() {
         canZoomOut={zoom > minZoom}
         onLocate={handleLocate}
         locating={locating}
+        onAddDiscovery={disc.view ? undefined : startAddDiscovery}
       />
-      {!isSplit && !panelOpen && (
+
+      {uncovered.length > 0 && (
+        <div role="status" className="hm-surface pointer-events-none absolute left-1/2 top-[7.25rem] z-[1040] max-w-[calc(100%-1.5rem)] -translate-x-1/2 px-3 py-1.5 text-center text-[12px] font-medium text-stone-700 sm:top-[4.25rem]">
+          Little or no imagery here for {uncovered.map((layer) => layer.name).join(" or ")}
+        </div>
+      )}
+
+      {picking && (
+        <LocationPicker
+          onConfirm={confirmPickedLocation}
+          onUseGps={locateForDiscovery}
+          onCancel={() => (disc.draft?.lat != null ? setDisc((d) => ({ ...d, view: "form" })) : closeDisc())}
+          locating={pickLocating}
+        />
+      )}
+      {disc.view && !picking && (
+        <DiscoveryPanel
+          view={disc.view}
+          store={discoveries}
+          selected={selectedDiscovery}
+          draft={disc.draft}
+          isNew={disc.isNew}
+          onClose={closeDisc}
+          onOpenList={() => setDisc({ view: "list", id: null, draft: null, isNew: false })}
+          onSelect={(id) => {
+            const record = discoveries.items.find((d) => d.id === id);
+            if (record) {
+              setShowDiscoveries(true);
+              mapRef.current?.flyTo([record.lat, record.lng], Math.max(mapRef.current.getZoom(), 15), { duration: 1.1 });
+            }
+            setDisc({ view: "detail", id, draft: null, isNew: false });
+          }}
+          onAdd={startAddDiscovery}
+          onEdit={(record) => setDisc({ view: "form", id: record.id, draft: { ...record }, isNew: false })}
+          onShowOnMap={showDiscoveryOnMap}
+          onSave={saveDiscovery}
+          onCancelForm={() => (disc.isNew ? closeDisc() : setDisc({ view: "detail", id: disc.id, draft: null, isNew: false }))}
+          onChangeLocation={(draft) => {
+            if (draft.lat != null) mapRef.current?.setView([draft.lat, draft.lng], Math.max(mapRef.current.getZoom(), 16));
+            setDisc((d) => ({ ...d, view: "pick", draft }));
+          }}
+          onDeleted={() => setDisc({ view: "list", id: null, draft: null, isNew: false })}
+        />
+      )}
+      {!isSplit && !panelOpen && !disc.view && (
         <section aria-label="Map opacity" className="hm-surface absolute bottom-[max(1.5rem,env(safe-area-inset-bottom))] left-16 right-3 z-[1050] max-w-sm px-3 py-2 md:hidden">
           <OpacityControl opacity={opacity} onChange={setOpacity} />
         </section>

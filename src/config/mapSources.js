@@ -3,7 +3,13 @@
  * Centralised raster tile sources for React + Leaflet, with controlled overzoom.
  *
  * IDs are STABLE. Secrets via VITE_MAPTILER_KEY in .env.local.
- * Each layer declares a `category` ("modern" | "historic") used by the UI.
+ * Each layer declares a `category` ("modern" | "historic" | "aerial" | "lidar")
+ * used by the UI (see LAYER_GROUPS).
+ *
+ * Besides a plain XYZ `url`, a layer may declare:
+ * - `sources: [{ url, bounds? }]`  several tilesets drawn as one layer
+ * - `wms: { layers, styles?, ... }` the `url` is then a WMS endpoint
+ * - `coverage: [[s, w], [n, e]]`    outside it the UI says "no coverage here"
  *
  * Note:
  * - Most layers keep maxNativeZoom + maxZoom for tasteful overzoom.
@@ -26,6 +32,17 @@ const ATTR_MAPTILER =
   '<a href="https://www.maptiler.com/copyright/" target="_blank" rel="noopener">&copy; MapTiler</a>';
 const ATTR_CARTO =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+
+// NLS-hosted tilesets (same host the Roy maps already use).
+const NLS_TILES = "https://mapseries-tilesets.s3.amazonaws.com";
+// Scottish Remote Sensing Portal (Scottish Government / JNCC) GeoServer WMS.
+const SRSP_WMS = "https://srsp-ows.jncc.gov.uk/ows";
+const lidarPhases = (model) =>
+  [1, 2, 3, 4, 5, 6].map((n) => `scotland:scotland-lidar-${n}-${model}`).join(",");
+const ATTR_LIDAR =
+  'LiDAR &copy; Crown copyright Scottish Government, SEPA, Fugro &amp; Scottish Water (<a href="https://remotesensingdata.gov.scot/" target="_blank" rel="noopener">OGL</a>)';
+// Rough mainland + islands box used for "no coverage here" hints.
+const SCOTLAND = [[54.5, -8.8], [60.95, -0.6]];
 
 export const BASE_LAYERS = [
   // --- Modern basemaps: OSM & CartoDB -----------------------------------------
@@ -297,15 +314,137 @@ export const BASE_LAYERS = [
     maxZoom: 20,
     crossOrigin: true,
   },
+
+  // --- Historic (NLS direct, large scale) -------------------------------------
+  {
+    id: "nls-os-sixinch-first",
+    name: "OS Six‑Inch 1st edition 1843–1882",
+    category: "historic",
+    url: `${NLS_TILES}/os/6inchfirst/{z}/{x}/{y}.png`,
+    attribution: ATTR_NLS,
+    minZoom: 1,
+    maxNativeZoom: 17,
+    maxZoom: 21,
+    crossOrigin: true,
+    coverage: SCOTLAND,
+  },
+  {
+    id: "nls-os-25inch-1892",
+    name: "OS 25‑Inch 1892–1914 (Scotland)",
+    category: "historic",
+    sources: [
+      { url: `${NLS_TILES}/25_inch/scotland_1/{z}/{x}/{y}.png` },
+      { url: `${NLS_TILES}/25_inch/scotland_2/{z}/{x}/{y}.png` },
+    ],
+    attribution: ATTR_NLS,
+    minZoom: 1,
+    maxNativeZoom: 18,
+    maxZoom: 22,
+    crossOrigin: true,
+    coverage: SCOTLAND,
+  },
+
+  // --- Historical aerial photography ------------------------------------------
+  {
+    id: "nls-air-photos-1944",
+    name: "OS Air Photo Mosaics 1944–1950",
+    category: "aerial",
+    url: `${NLS_TILES}/air-photo/{z}/{x}/{y}.png`,
+    attribution:
+      'Air photo mosaics 1944–1950 &copy; <a href="https://maps.nls.uk/os/air-photos/" target="_blank" rel="noopener">National Library of Scotland</a>',
+    minZoom: 1,
+    maxNativeZoom: 15,
+    maxZoom: 19,
+    crossOrigin: true,
+    // Towns and selected areas only; uncovered tiles simply fail to load.
+    coverage: [[54.6, -5.3], [57.6, -1.9]],
+  },
+
+  // --- LiDAR & terrain ---------------------------------------------------------
+  {
+    // Pre-rendered multi-directional hillshade of the bare-earth model (DTM).
+    // One tileset per survey phase; `bounds` stops requests outside each phase.
+    id: "lidar-dtm-hillshade",
+    name: "LiDAR hillshade (DTM, multi‑directional)",
+    category: "lidar",
+    sources: [
+      { url: `${NLS_TILES}/lidar/rgb/phase1/{z}/{x}/{y}.png`, bounds: [[54.754, -5.641], [59.165, -1.751]] },
+      { url: `${NLS_TILES}/lidar/rgb/phase2/{z}/{x}/{y}.png`, bounds: [[55.423, -6.458], [60.214, -1.104]] },
+      { url: `${NLS_TILES}/lidar/rgb/phase3/{z}/{x}/{y}.png`, bounds: [[54.584, -5.209], [56.163, -1.762]] },
+      { url: `${NLS_TILES}/lidar/rgb/phase4/{z}/{x}/{y}.png`, bounds: [[55.031, -5.063], [56.549, -2.001]] },
+      { url: `${NLS_TILES}/lidar/rgb/phase5/{z}/{x}/{y}.png`, bounds: [[55.031, -5.063], [56.549, -2.001]] },
+      { url: `${NLS_TILES}/lidar/rgb/phase6/{z}/{x}/{y}.png`, bounds: [[55.534, -5.033], [55.988, -4.146]] },
+      { url: `${NLS_TILES}/lidar/rgb/hebrides/{z}/{x}/{y}.png`, bounds: [[57.041, -7.48], [58.522, -6.124]] },
+    ],
+    attribution: `${ATTR_LIDAR} | Hillshade: <a href="https://maps.nls.uk/" target="_blank" rel="noopener">NLS</a> / R. Pearson (RVT)`,
+    minZoom: 1,
+    maxNativeZoom: 16,
+    maxZoom: 21,
+    crossOrigin: true,
+    coverage: SCOTLAND,
+  },
+  {
+    // Elevation-tinted surface model: buildings, trees and structures included.
+    id: "lidar-dsm-elevation",
+    name: "LiDAR surface model (DSM, elevation tint)",
+    category: "lidar",
+    url: SRSP_WMS,
+    wms: {
+      layers: lidarPhases("dsm"),
+      styles: Array(6).fill("scotland:lidar-dem").join(","),
+      format: "image/png",
+      transparent: true,
+    },
+    attribution: ATTR_LIDAR,
+    minZoom: 1,
+    maxZoom: 21,
+    coverage: SCOTLAND,
+  },
+  {
+    // Elevation-tinted bare-earth model (vegetation and buildings removed).
+    id: "lidar-dtm-elevation",
+    name: "LiDAR terrain model (DTM, elevation tint)",
+    category: "lidar",
+    url: SRSP_WMS,
+    wms: {
+      layers: lidarPhases("dtm"),
+      styles: Array(6).fill("scotland:lidar-dem").join(","),
+      format: "image/png",
+      transparent: true,
+    },
+    attribution: ATTR_LIDAR,
+    minZoom: 1,
+    maxZoom: 21,
+    coverage: SCOTLAND,
+  },
+  {
+    id: "bgs-bedrock-625k",
+    name: "BGS bedrock geology 1:625k",
+    category: "lidar",
+    url: "https://ogc.bgs.ac.uk/cgi-bin/BGS_Bedrock_and_Superficial_Geology/wms",
+    wms: { layers: "GBR_BGS_625k_BLS", format: "image/png", transparent: true },
+    attribution:
+      'Contains British Geological Survey materials &copy; UKRI',
+    minZoom: 1,
+    maxZoom: 21,
+  },
 ];
 
-/** Layers grouped for UI selectors. */
-export function groupedBaseLayers() {
-  const modern = BASE_LAYERS.filter((l) => l.category !== "historic");
-  const historic = BASE_LAYERS.filter((l) => l.category === "historic");
-  return { modern, historic };
-}
+/** Selector groups, in display order. */
+export const LAYER_GROUPS = [
+  { category: "modern", label: "Modern" },
+  { category: "historic", label: "Historic maps" },
+  { category: "aerial", label: "Historical aerial photography" },
+  { category: "lidar", label: "LiDAR & terrain" },
+];
 
+/** Layers grouped for UI selectors: [{ label, layers }]. */
+export function groupedBaseLayers() {
+  return LAYER_GROUPS.map(({ category, label }) => ({
+    label,
+    layers: BASE_LAYERS.filter((l) => l.category === category),
+  })).filter((group) => group.layers.length > 0);
+}
 export function getLayerById(id) {
   return BASE_LAYERS.find((l) => l.id === id) || null;
 }

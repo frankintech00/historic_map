@@ -1,5 +1,5 @@
 import React from "react";
-import { X, ArrowUpDown, Check } from "lucide-react";
+import { X, ArrowUpDown, Check, Star } from "lucide-react";
 import { groupedBaseLayers } from "../../config/mapSources.js";
 import { MARKER_SOURCES } from "../../config/markerSources.js";
 import OpacityControl from "../controls/OpacityControl.jsx";
@@ -16,6 +16,7 @@ import OpacityControl from "../controls/OpacityControl.jsx";
  *  - onSwap: () => void
  *  - opacity, onOpacityChange                       (single mode only)
  *  - activeSource, onSourceChange
+ *  - discoveries: { count, visible, onToggle, onManage }   (My Discoveries)
  */
 export default function LayerPanel({
   open,
@@ -28,6 +29,7 @@ export default function LayerPanel({
   onOpacityChange,
   activeSource,
   onSourceChange,
+  discoveries,
 }) {
   return (
     <>
@@ -112,6 +114,40 @@ export default function LayerPanel({
 
             <div className="h-px bg-stone-200" />
 
+            {/* Personal layer */}
+            {discoveries && (
+              <section className="space-y-2">
+                <span className="hm-label">My Discoveries</span>
+                <div className="flex items-center gap-2">
+                  <label className="hm-radio-row -mx-1 flex-1 items-center" data-checked={discoveries.visible}>
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={discoveries.visible}
+                      onChange={(e) => discoveries.onToggle(e.target.checked)}
+                    />
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-stone-900 text-amber-400" aria-hidden>
+                      <Star size={11} fill="currentColor" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[13px] font-medium leading-tight text-stone-800">
+                        Show my pins
+                      </span>
+                      <span className="mt-0.5 block text-[11px] leading-snug text-stone-500">
+                        {discoveries.count === 1 ? "1 discovery" : `${discoveries.count} discoveries`} on this device
+                      </span>
+                    </span>
+                    {discoveries.visible && <Check size={15} className="shrink-0 text-bronze-600" aria-hidden />}
+                  </label>
+                  <button type="button" className="hm-btn shrink-0" onClick={discoveries.onManage}>
+                    Manage
+                  </button>
+                </div>
+              </section>
+            )}
+
+            {discoveries && <div className="h-px bg-stone-200" />}
+
             {/* Data layers */}
             <section className="space-y-2">
               <span className="hm-label">Historic sites &amp; data</span>
@@ -149,7 +185,6 @@ export default function LayerPanel({
 /* ---------------- helpers ---------------- */
 
 function LayerSelect({ label, value, onChange }) {
-  const { modern, historic } = groupedBaseLayers();
   return (
     <div className="space-y-1.5">
       <label className="hm-label block">{label}</label>
@@ -159,20 +194,15 @@ function LayerSelect({ label, value, onChange }) {
         onChange={(e) => onChange(e.target.value)}
         aria-label={label}
       >
-        <optgroup label="Modern">
-          {modern.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.name}
-            </option>
-          ))}
-        </optgroup>
-        <optgroup label="Historic">
-          {historic.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.name}
-            </option>
-          ))}
-        </optgroup>
+        {groupedBaseLayers().map((group) => (
+          <optgroup key={group.label} label={group.label}>
+            {group.layers.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </optgroup>
+        ))}
       </select>
     </div>
   );

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "esri-leaflet": "^3.0.19",
+    "fflate": "^0.8.3",
     "leaflet": "^1.9.4",
     "leaflet-defaulticon-compatibility": "^0.1.2",
     "leaflet-side-by-side": "^2.2.0",

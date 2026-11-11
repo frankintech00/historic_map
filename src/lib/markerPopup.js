@@ -41,6 +41,8 @@ export function buildMarkerPopup(source, properties = {}) {
     return [`<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`];
   }).join("");
   const href = safeLink(properties[fields.url]);
+  // Records with a stable id can carry a personal note (see MarkerLayer).
+  const noteId = source.idField ? text(properties[source.idField]) : "";
 
   return `<div>
     <div class="hm-popup-title">${escapeHtml(title)}</div>
@@ -49,6 +51,7 @@ export function buildMarkerPopup(source, properties = {}) {
     ${meta ? `<div class="hm-popup-meta">${meta}</div>` : ""}
     ${details ? `<dl class="hm-popup-details">${details}</dl>` : ""}
     <div class="hm-popup-source">${escapeHtml(source.attribution || source.label || "")}</div>
+    ${noteId ? `<button type="button" class="hm-popup-action" data-hm-note>Add personal note</button>` : ""}
     ${href ? `<a href="${href}" class="hm-popup-link" target="_blank" rel="noopener noreferrer">View full record →</a>` : ""}
   </div>`;
 }

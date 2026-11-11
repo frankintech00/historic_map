@@ -1,12 +1,12 @@
 import React, { useMemo, useEffect } from "react";
-import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 // Ensure default marker icons are wired before any markers render
 import "../../lib/leaflet-setup.js";
 
 import { BASE_LAYERS } from "../../config/mapSources.js";
-import { tileOptions } from "../../lib/tileOptions.js";
+import RasterLayer from "./RasterLayer.jsx";
 import SearchPin from "../overlays/SearchPin.jsx";
 import LocatePin from "../overlays/LocatePin.jsx";
 import MarkerLayer from "../overlays/MarkerLayer.jsx";
@@ -49,6 +49,8 @@ export default function SingleViewMap({
   onViewChange,
   onMapReady,
   activeSource,
+  onCoverage,
+  children,
 }) {
   const { bottomLayer, topLayer } = useMemo(() => {
     const byId = Object.fromEntries(BASE_LAYERS.map((l) => [l.id, l]));
@@ -69,13 +71,14 @@ export default function SingleViewMap({
       zoomControl={false}
       attributionControl={true}
     >
-      <TileLayer key={`base-${bottomLayer.id}`} {...tileOptions(bottomLayer)} zIndex={1} />
+      <RasterLayer key={`base-${bottomLayer.id}`} layer={bottomLayer} zIndex={1} onCoverage={onCoverage} />
       {topLayer && (
-        <TileLayer
+        <RasterLayer
           key={`overlay-${topLayer.id}`}
-          {...tileOptions(topLayer)}
+          layer={topLayer}
           zIndex={2}
           opacity={opacity}
+          onCoverage={onCoverage}
         />
       )}
 
@@ -85,6 +88,8 @@ export default function SingleViewMap({
       {/* Pins */}
       {searchMarker && <SearchPin point={searchMarker} />}
       {locateMarker && <LocatePin point={locateMarker} />}
+
+      {children}
 
       {/* Controllers */}
       <ViewSync onViewChange={onViewChange} />

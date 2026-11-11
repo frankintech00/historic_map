@@ -355,3 +355,60 @@
 .hm-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* ================================================================
+   My Discoveries: buttons, inputs, markers
+   ================================================================ */
+@layer components {
+  .hm-input {
+    @apply w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 transition-colors
+           placeholder:text-stone-400 hover:border-stone-400
+           focus:border-bronze-500 focus:outline-none focus:ring-1 focus:ring-bronze-500;
+  }
+  .hm-btn {
+    @apply inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 text-[13px] font-medium text-stone-700 transition-colors
+           hover:border-stone-400 hover:bg-stone-50
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bronze-500
+           disabled:pointer-events-none disabled:opacity-50;
+  }
+  .hm-btn-primary {
+    @apply border-bronze-600 bg-bronze-600 text-white hover:border-bronze-700 hover:bg-bronze-700;
+  }
+  .hm-btn-danger {
+    @apply border-red-700 bg-red-700 text-white hover:border-red-800 hover:bg-red-800;
+  }
+}
+
+/* Personal pins: dark round badge with a gold star — never mistaken for the
+   coloured teardrops of official records. */
+.hm-discovery-pin {
+  background: none;
+  border: none;
+}
+.hm-discovery-pin svg {
+  filter: drop-shadow(0 2px 3px rgba(28, 25, 23, 0.45));
+}
+.hm-cluster-mine {
+  background: #1c1917;
+  color: #fbbf24;
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 4px rgba(28, 25, 23, 0.25), 0 2px 8px rgba(28, 25, 23, 0.35);
+}
+
+/* "Add personal note" button inside official-record popups */
+.hm-popup-action {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #e4ba7c;
+  background: #fdf8f1;
+  color: #8f4d20;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.hm-popup-action:hover {
+  background: #f8ecd9;
+}

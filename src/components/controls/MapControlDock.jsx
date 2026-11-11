@@ -1,9 +1,9 @@
 import React from "react";
-import { Plus, Minus, LocateFixed, Loader2 } from "lucide-react";
+import { Plus, Minus, LocateFixed, Loader2, MapPinPlus } from "lucide-react";
 
 /**
  * MapControlDock — floating map controls, bottom-left.
- * Zoom in/out, locate me.
+ * Zoom in/out, locate me, add a personal discovery.
  */
 export default function MapControlDock({
   onZoomIn,
@@ -12,6 +12,7 @@ export default function MapControlDock({
   canZoomOut = true,
   onLocate,
   locating = false,
+  onAddDiscovery,
 }) {
   return (
     <div className="absolute bottom-6 left-3 z-[1050] flex flex-col gap-2">
@@ -58,6 +59,21 @@ export default function MapControlDock({
           )}
         </button>
       </div>
+
+      {/* Add discovery */}
+      {onAddDiscovery && (
+        <div className="hm-surface flex flex-col overflow-hidden !border-stone-900 !bg-stone-900">
+          <button
+            type="button"
+            className="hm-icon-btn !text-amber-400 hover:!bg-stone-800"
+            onClick={onAddDiscovery}
+            title="Add discovery"
+            aria-label="Add discovery"
+          >
+            <MapPinPlus size={18} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

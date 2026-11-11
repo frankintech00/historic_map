@@ -1,8 +1,10 @@
 // Central registry for external marker/data sources.
 // centroidFromGeometry: true  → adapter computes point from polygon ring centroid
+// idField → attribute identifying a record, used to link personal notes to it
 
 export const MARKER_SOURCES = {
   canmoreTerrestrial: {
+    idField: "CANMOREID",
     label: "Canmore Sites",
     detailFields: [
       { field: "BROADCLASS", label: "Site group" },
@@ -36,6 +38,7 @@ export const MARKER_SOURCES = {
   },
 
   hesListedBuildings: {
+    idField: "DES_REF",
     label: "Listed Buildings",
     detailFields: [
       { field: "DES_REF", label: "Listing reference" },
@@ -66,6 +69,7 @@ export const MARKER_SOURCES = {
   },
 
   hesScheduledMonuments: {
+    idField: "DES_REF",
     label: "Scheduled Monuments",
     detailFields: [
       { field: "DES_REF", label: "Monument reference" },
@@ -96,6 +100,7 @@ export const MARKER_SOURCES = {
   },
 
   hesGardens: {
+    idField: "DES_REF",
     label: "Gardens & Designed Landscapes",
     detailFields: [
       { field: "DES_REF", label: "Inventory reference" },
@@ -124,6 +129,7 @@ export const MARKER_SOURCES = {
   },
 
   hesBattlefields: {
+    idField: "DES_REF",
     label: "Historic Battlefields",
     detailFields: [
       { field: "DES_REF", label: "Inventory reference" },
@@ -152,6 +158,7 @@ export const MARKER_SOURCES = {
   },
 
   hesWorldHeritage: {
+    idField: "DES_REF",
     label: "World Heritage Sites",
     detailFields: [
       { field: "DES_REF", label: "Reference" },
@@ -178,6 +185,7 @@ export const MARKER_SOURCES = {
   },
 
   hesPropertiesInCare: {
+    idField: "PIC_ID",
     label: "Properties in Care",
     detailFields: [{ field: "PIC_ID", label: "Property reference" }],
     description: "HES managed historic properties open to the public",
@@ -200,6 +208,7 @@ export const MARKER_SOURCES = {
   },
 
   scottishRadiocarbon: {
+    idField: "CANMOREID",
     label: "Scottish Radiocarbon Index",
     detailFields: [
       { field: "BROADCLASS", label: "Site group" },
@@ -230,6 +239,62 @@ export const MARKER_SOURCES = {
     },
     attribution: "© Historic Environment Scotland (Canmore)",
     enableClustering: true,
+  },
+
+  hesConservationAreas: {
+    idField: "DES_REF",
+    label: "Conservation Areas",
+    detailFields: [
+      { field: "DES_REF", label: "Reference" },
+      { field: "DESIGNATED", label: "Designated", format: "date" },
+      { field: "AREA_HA", label: "Area (ha)" },
+    ],
+    description: "Areas of special architectural or historic interest",
+    color: "#a16207",
+    type: "arcgis-feature",
+    serviceUrl:
+      "https://inspire.hes.scot/arcgis/rest/services/HES/Conservation_Areas/MapServer",
+    layerId: 0,
+    centroidFromGeometry: true,
+    defaultWhere: "1=1",
+    pageSize: 200,
+    maxPages: 1,
+    minFetchZoom: 9,
+    fieldMap: {
+      title: "DES_TITLE",
+      subtitle: "LOCAL_AUTH",
+      url: "LINK",
+    },
+    attribution: "© Historic Environment Scotland",
+    enableClustering: true,
+  },
+
+  hesHistoricMpa: {
+    idField: "DES_REF",
+    label: "Historic Marine Protected Areas",
+    detailFields: [
+      { field: "DES_REF", label: "Reference" },
+      { field: "DESIGNATED", label: "Designated", format: "date" },
+      { field: "AMENDED", label: "Designation amended", format: "date" },
+    ],
+    description: "Protected wrecks and marine historic assets",
+    color: "#0369a1",
+    type: "arcgis-feature",
+    serviceUrl:
+      "https://inspire.hes.scot/arcgis/rest/services/HES/Historic_Marine_Protected_Areas/MapServer",
+    layerId: 0,
+    centroidFromGeometry: true,
+    defaultWhere: "1=1",
+    pageSize: 50,
+    maxPages: 1,
+    minFetchZoom: 1,
+    fieldMap: {
+      title: "DES_TITLE",
+      subtitle: "COUNTY",
+      url: "LINK",
+    },
+    attribution: "© Historic Environment Scotland",
+    enableClustering: false,
   },
 };
 

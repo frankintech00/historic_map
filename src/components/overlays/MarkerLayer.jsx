@@ -11,6 +11,7 @@ import "../../lib/leaflet-setup.js";
 import { MARKER_SOURCES } from "../../config/markerSources.js";
 import { buildMarkerPopup } from "../../lib/markerPopup.js";
 import { createPopupSafeRefresh } from "../../lib/popupSafeRefresh.js";
+import { dispatchRecordNote, hasLinkedNote } from "../../state/DiscoveryBus.js";
 import {
   queryFeaturesByBbox,
   fieldsFromFieldMap,
@@ -136,6 +137,28 @@ export default function MarkerLayer({ sourceKey, debounceMs = 350 }) {
         layer.bindPopup(buildMarkerPopup(src, feature.properties), {
           maxWidth: 300,
           maxHeight: 260,
+        });
+        // Wire the popup's "Add personal note" button to the React app.
+        const recordId = src.idField ? feature.properties?.[src.idField] : null;
+        if (recordId == null || String(recordId).trim() === "") return;
+        layer.on("popupopen", (e) => {
+          const button = e.popup.getElement()?.querySelector("[data-hm-note]");
+          if (!button) return;
+          const id = String(recordId).trim();
+          if (hasLinkedNote(`${sourceKey}:${id}`)) button.textContent = "View my note";
+          button.onclick = () => {
+            const [lng, lat] = feature.geometry.coordinates;
+            dispatchRecordNote({
+              source: sourceKey,
+              sourceLabel: src.label,
+              id,
+              title: String(feature.properties?.[src.fieldMap?.title] ?? "").trim(),
+              url: String(feature.properties?.[src.fieldMap?.url] ?? ""),
+              lat,
+              lng,
+            });
+            layer.closePopup();
+          };
         });
       },
     });

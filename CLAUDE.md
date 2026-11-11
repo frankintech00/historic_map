@@ -39,11 +39,12 @@ src/
 │   ├── layout/       # TopBar (brand, search, mode toggle, panel toggle)
 │   ├── panels/       # LayerPanel (layer selects, opacity, data sources)
 │   ├── controls/     # SearchBar, MapControlDock (zoom/locate/home)
-│   └── overlays/     # MarkerLayer (clustered API markers), SearchPin, LocatePin
+│   ├── overlays/     # MarkerLayer (clustered API markers), DiscoveryLayer, SearchPin, LocatePin
+│   └── discoveries/  # DiscoveryPanel (list/detail), DiscoveryForm, LocationPicker, PhotoImage
 ├── config/           # mapSources.js (tile layers), markerSources.js (ArcGIS sources)
 ├── adapters/         # hesArcGis.js (ArcGIS FeatureServer queries)
-├── state/            # SearchBus.jsx (global event bus: search → map)
-├── lib/              # leaflet-setup.js (default icon fix for Vite)
+├── state/            # SearchBus.jsx, DiscoveryBus.js (popup → app), useDiscoveries.js
+├── lib/              # discoveryDb (IndexedDB), discoveryModel, discoveryBackup (ZIP), imageCompress, tileOptions…
 └── index.css         # ALL styling: Tailwind layers, hm-* components, Leaflet overrides
 ```
 
@@ -54,6 +55,9 @@ src/
 - **SearchBus**: SearchBar dispatches `search:goto` on a global EventTarget; MapView subscribes with `useSearchGoto`. Keeps search decoupled from the map.
 - **Config-driven layers**: `mapSources.js` entries carry a `category: "modern" | "historic"` used to group UI selects (`groupedBaseLayers()`). `markerSources.js` entries carry a `color` used for pin/cluster tinting and panel swatches. Add new layers/sources by editing config only — no component changes needed.
 - **Styling**: single design system in `src/index.css` with `hm-*` component classes (hm-surface, hm-select, hm-range, hm-cluster, hm-popup-*…). Palette: warm stone neutrals + `bronze` accent scale defined in `tailwind.config.js`. Leaflet chrome (popups, attribution, side-by-side divider) is restyled there too.
+- **Raster layers**: `RasterLayer.jsx` draws any `mapSources.js` entry imperatively: plain XYZ (`url`), several tilesets as one (`sources: [{url, bounds}]`, e.g. LiDAR phases) or WMS (`wms: {layers, styles}`). It reports per-view tile coverage so MapView can show "Little or no imagery here". In compare view the side-by-side plugin clips only one Leaflet layer per side; `SideBySideView` mirrors that clip onto the other sub-layers.
+- **My Discoveries is browser-only by design**: records and compressed photos live in IndexedDB (`lib/discoveryDb.js`); export/import is a ZIP of GeoJSON + photos (`lib/discoveryBackup.js`, via `fflate`). Do NOT add a backend, uploads or accounts for it. Imported data is untrusted: always pass it through `sanitiseDiscovery`.
+- **Official record → personal note**: popups are HTML strings, so the "Add personal note" button talks to React through `DiscoveryBus`; a source needs an `idField` in `markerSources.js` for the button to appear.
 - **MarkerLayer**: bbox-scoped, debounced, abortable ArcGIS fetches; clustered with leaflet.markercluster; popup HTML is built as strings for speed (escape user data via `escapeHtml`/`escapeAttr`).
 
 ## Current Features
@@ -63,7 +67,9 @@ src/
 - Layer panel: desktop floating card / mobile bottom sheet; swap-layers button
 - Search: MapTiler geocoding (GB), keyboard navigation (arrows/Enter/Escape), direct "lat, lng" coordinate entry
 - Geolocation + home (reset view) in the control dock
-- Data layers: 8 HES/Canmore sources, colour-coded pins & clusters, styled popups
+- Data layers: 10 HES/Canmore sources, colour-coded pins & clusters, styled popups
+- LiDAR (NLS multi-directional hillshade; Scottish Remote Sensing Portal DSM/DTM WMS), 1944–50 air photo mosaics, OS 25-inch and six-inch 1st edition, BGS geology
+- My Discoveries: personal pins with notes/photos, linked to official records, ZIP backup/restore
 
 ## Environment Variables
 
@@ -72,6 +78,7 @@ Required:
 
 ## Notes for Claude Code Instances
 
+- Tests: `npm test` (node --test on `src/lib/*.test.js`; test files must not import modules that read `import.meta.env`, e.g. `mapSources.js`)
 - This is a real, deployed project - changes should be tested (`npm run lint` + `npm run build` minimum) before deployment
 - MapTiler API has rate limits - be mindful when testing
 - ArcGIS FeatureServer queries are debounced/aborted to avoid overwhelming the service
